@@ -14,15 +14,20 @@ type dummyFS struct{
 var instance *dummyFS
 var fsName = string("dummy")
 
+var regObj = FSFact.FSManager{CreateObjFunc: CreateObj, ReleaseObjFunc: ReleaseObj}
 func init() {
-    FSFact.RegisterFS(fsName, CreateObj)
+    FSFact.RegisterFileSystem(fsName, regObj)
 }
+
+////////////////////////////////////////
+//	REQUIRED FOR FSCREATOR TO WPORK
 
 // CreateObj : Create the dummy FS object for factory
 func CreateObj() FSIntf.FileSystem {
     if instance == nil {
 		instance = &dummyFS{}
 		instance.refCount = 0
+		fmt.Println("Created first instances of " + fsName)
     }
     instance.refCount++
     return instance
@@ -32,9 +37,14 @@ func CreateObj() FSIntf.FileSystem {
 func ReleaseObj() {
     instance.refCount--
     if instance.refCount == 0 {
+		fmt.Println("Released all instances of " + fsName)
 		instance = nil
     }
 }
+
+////////////////////////////////////////
+
+
 
 func (f *dummyFS) InitFS() int {
     return 0

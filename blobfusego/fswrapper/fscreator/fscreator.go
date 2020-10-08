@@ -6,21 +6,30 @@ import (
 	FSIntf "../fsinterface"
 )
 
+
+// CreateObjFunc : Generic functoin that factory call to create object of FS
+type CreateObjFunc  	func()(FSIntf.FileSystem)
+// ReleaseObjFunc : Generic function that factory calls to delete object of FS
+type ReleaseObjFunc		func()()
+
+// FSManager : Method to be used by all implementations to register 
+type FSManager struct{
+	CreateObjFunc
+	ReleaseObjFunc
+}
+
+
 var (
 	creatorLock 	sync.RWMutex
-    fsList		= make(map[string]FSIntf.CreateObj)
+	fsList			= make(map[string]FSManager)
 )
 
-// RegisterFS : Registration method for all the implementations to factory
-func RegisterFS(fsName string, fs FSIntf.CreateObj) {	
+// RegisterFileSystem : Registration method for all the implementations to factory
+func RegisterFileSystem(fsName string, fs FSManager) {	
 	//fmt.Println("Registering : " + fsName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
-
-	if fs == nil {
-		panic ("Can not register empty FileSystem : " + fsName)
-	}
 
 	if _, exist := fsList[fsName]; exist {
         panic("FS " + fsName + " already registered")
@@ -38,8 +47,24 @@ func GetFileSystem(fsName string) (FSIntf.FileSystem, bool) {
 	defer creatorLock.Unlock()
 	
 	if fs, exist := fsList[fsName]; exist {
-		return fs(), true
-	} else {
-		return nil, false
-	}
+		return fs.CreateObjFunc(), true
+	} 
+	
+	return nil, false
+}
+
+
+// ReleaseFileSystem : Factory method to release the object
+func ReleaseFileSystem(fs FSIntf.FileSystem) bool{
+	//fmt.Println("Generating object of : " + fsName)
+
+	creatorLock.Lock()
+	defer creatorLock.Unlock()
+	
+	if fs, exist := fsList[fs.GetName()]; exist {
+		fs.ReleaseObjFunc()
+		return true
+	} 
+	
+	return false
 }

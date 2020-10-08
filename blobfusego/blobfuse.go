@@ -35,5 +35,10 @@ func main() {
 	
 	fd.SetConsumer(fs)
 	fmt.Println("FD Name : " + fd.GetName())
+
+
+	fd.SetConsumer(nil)
+	FDFact.ReleaseFuseDriver(fd)
+	FSFact.ReleaseFileSystem(fs)
 }
 

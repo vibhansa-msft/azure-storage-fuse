@@ -5,9 +5,6 @@ import (
 	FSIntf "../../fswrapper/fsinterface"
 )
 
-// CreateObj : Generic functoin that eeryone needs to implement for the factory
-type CreateObj  	func()(FuseDriver)
-
 // FuseDriver : Wrapper which eveyr fuse driver needs to implement
 type FuseDriver interface {
 
@@ -25,23 +22,31 @@ type FuseDriver interface {
 }
 
 
+
+// CreateObjFunc : Generic functoin that factory call to create object of FS
+type CreateObjFunc  	func()(FuseDriver)
+// ReleaseObjFunc : Generic function that factory calls to delete object of FS
+type ReleaseObjFunc		func()()
+
+// FDManager : Method to be used by all implementations to register 
+type FDManager struct{
+	CreateObjFunc
+	ReleaseObjFunc
+}
+
 // Method to create object based on fuse driver name
 var (
 	creatorLock 	sync.RWMutex
-    fuseList		= make(map[string]CreateObj)
+    fuseList		= make(map[string]FDManager)
 )
 
 
 // RegisterFuseDriver : Register every fuse driver to system using this
-func RegisterFuseDriver(fdName string, fd CreateObj) {	
+func RegisterFuseDriver(fdName string, fd FDManager) {	
 	//fmt.Println("Registering : " + fdName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
-
-	if fd == nil {
-		panic ("Can not register empty FileSystem : " + fdName)
-	}
 
 	if _, exist := fuseList[fdName]; exist {
         panic("FD " + fdName + " already registered")
@@ -59,8 +64,23 @@ func GetFuseDriver(fdName string) (FuseDriver, bool) {
 	defer creatorLock.Unlock()
 	
 	if fd, exist := fuseList[fdName]; exist {
-		return fd(), true
+		return fd.CreateObjFunc(), true
 	} else {
 		return nil, false
 	}
+}
+
+// ReleaseFuseDriver : Factory method to release the object
+func ReleaseFuseDriver(fd FuseDriver) bool{
+	//fmt.Println("Generating object of : " + fsName)
+
+	creatorLock.Lock()
+	defer creatorLock.Unlock()
+	
+	if fd, exist := fuseList[fd.GetName()]; exist {
+		fd.ReleaseObjFunc()
+		return true
+	} 
+	
+	return false
 }

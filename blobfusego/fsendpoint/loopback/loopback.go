@@ -15,15 +15,20 @@ type loopbackFS struct{
 var instance *loopbackFS
 var fsName = string("loopback")
 
+var regObj = FSFact.FSManager{CreateObjFunc: CreateObj, ReleaseObjFunc: ReleaseObj}
 func init() {
-    FSFact.RegisterFS(fsName, CreateObj)
+    FSFact.RegisterFileSystem(fsName, regObj)
 }
+
+////////////////////////////////////////
+//	REQUIRED FOR FSCREATOR TO WPORK
 
 // CreateObj : Create the loopback FS object for factory
 func CreateObj() FSIntf.FileSystem {
     if instance == nil {
 		instance = &loopbackFS{}
 		instance.refCount = 0
+		fmt.Println("Created first instances of " + fsName)
     }
     instance.refCount++
     return instance
@@ -34,8 +39,11 @@ func ReleaseObj() {
     instance.refCount--
     if instance.refCount == 0 {
 		instance = nil
+		fmt.Println("Released all instances of " + fsName)
     }
 }
+
+////////////////////////////////////////
 
 func (f *loopbackFS) InitFS() int {
     return 0
