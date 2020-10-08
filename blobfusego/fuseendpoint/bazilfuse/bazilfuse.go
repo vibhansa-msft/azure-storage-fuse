@@ -48,7 +48,6 @@ func (f *bazilFD) DeInitFuse() {
 
 // SetConsumer : Set the next layer that handles the call
 func (f *bazilFD) SetConsumer(cons FSIntf.FileSystem) int {
-	fmt.Println("Set consumer in " + fdName)
 	instance.consumer = cons
 	return 0;
 }

@@ -16,18 +16,16 @@ import (
 )
 
 // Usage and global config are part of 'global' package
+// Sample CLI : go run blobfuse.go -mount-path="~/blob_mnt" -tmp-path="/mnt/blobfusetmp" -fs=loopback -fd=bazil
 
 func main() {	
-	Config.PrintOptionValues()
+	//Config.PrintOptionValues()
 
 	fs, _ := FSFact.GetFileSystem(*Config.BlobfuseConfig.FSName)
 	if fs == nil {
 		fmt.Println(" >> FS : " + *Config.BlobfuseConfig.FSName + " does not exists in the system")
 		os.Exit(1)
 	}
-
-	fmt.Println(fs.GetName())
-	fmt.Println(fs.GetCount())
 
 	fd, _ := FDFact.GetFuseDriver(*Config.BlobfuseConfig.FDName)
 	if fd == nil {
@@ -36,6 +34,6 @@ func main() {
 	}
 	
 	fd.SetConsumer(fs)
-	fmt.Println(fd.GetName())
+	fmt.Println("FD Name : " + fd.GetName())
 }
 
