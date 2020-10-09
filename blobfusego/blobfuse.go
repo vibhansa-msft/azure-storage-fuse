@@ -14,6 +14,7 @@ import (
 
 	FSFact		"./fswrapper/fscreator"
 	FDFact 		"./fuseendpoint/fusecreator"
+	Logger		"./global/logger"
 )
 
 // Usage and global config are part of 'global' package
@@ -21,6 +22,8 @@ import (
 
 func main() {	
 	Config.PrintOptionValues()
+
+	Logger.LogInfo("Starting to create pipeline")
 
 	fs, _ := FSFact.GetFileSystem(*Config.BlobfuseConfig.FSName)
 	if fs == nil {
@@ -39,6 +42,9 @@ func main() {
 
 
 	fd.SetConsumer(nil)
+
+	Logger.LogInfo("Starting to destroy pipeline")
+
 	FDFact.ReleaseFuseDriver(fd)
 	FSFact.ReleaseFileSystem(fs)
 

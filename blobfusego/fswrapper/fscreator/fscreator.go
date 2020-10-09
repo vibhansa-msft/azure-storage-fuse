@@ -57,7 +57,7 @@ func GetFileSystem(fsName string) (FSIntf.FileSystem, bool) {
 
 // ReleaseFileSystem : Factory method to release the object
 func ReleaseFileSystem(fs FSIntf.FileSystem) bool{
-	Logger.LogDebug("Generating object of : " + fs.GetName())
+	Logger.LogDebug("Releasing object of : " + fs.GetName())
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()

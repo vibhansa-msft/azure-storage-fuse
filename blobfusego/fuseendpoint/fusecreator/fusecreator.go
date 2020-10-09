@@ -73,7 +73,7 @@ func GetFuseDriver(fdName string) (FuseDriver, bool) {
 
 // ReleaseFuseDriver : Factory method to release the object
 func ReleaseFuseDriver(fd FuseDriver) bool{
-	Logger.LogDebug("Generating object of : " + fd.GetName())
+	Logger.LogDebug("Releasing object of : " + fd.GetName())
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()

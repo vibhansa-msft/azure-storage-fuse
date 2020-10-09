@@ -73,6 +73,7 @@ func StartLogger(){
 
 // StopLogger : Stop the logging infra
 func StopLogger() {
+	Logger.LogCrit("System shutting down")
 	Logger.StopLogger()
 }
 
