@@ -3,6 +3,7 @@ package fusecreator
 import (
 	"sync"
 	FSIntf "../../fswrapper/fsinterface"
+	Logger "../../global/logger"
 )
 
 // FuseDriver : Wrapper which eveyr fuse driver needs to implement
@@ -43,7 +44,7 @@ var (
 
 // RegisterFuseDriver : Register every fuse driver to system using this
 func RegisterFuseDriver(fdName string, fd FDManager) {	
-	//fmt.Println("Registering : " + fdName)
+	Logger.LogDebug("Registering : " + fdName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
@@ -58,21 +59,21 @@ func RegisterFuseDriver(fdName string, fd FDManager) {
 
 // GetFuseDriver : Factory method to get the object based on name
 func GetFuseDriver(fdName string) (FuseDriver, bool) {
-	//fmt.Println("Generating object of : " + fsName)
+	Logger.LogDebug("Generating object of : " + fdName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
 	
 	if fd, exist := fuseList[fdName]; exist {
 		return fd.CreateObjFunc(), true
-	} else {
-		return nil, false
-	}
+	} 
+	
+	return nil, false
 }
 
 // ReleaseFuseDriver : Factory method to release the object
 func ReleaseFuseDriver(fd FuseDriver) bool{
-	//fmt.Println("Generating object of : " + fsName)
+	Logger.LogDebug("Generating object of : " + fd.GetName())
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()

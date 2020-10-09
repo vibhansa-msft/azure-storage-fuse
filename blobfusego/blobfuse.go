@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"os"
 
+	// As Config initialize the logger this shall always be the first import
+	Config 		"./global"
+
 	_			"./fswrapper/fsinterface"
 	_ 			"./fswrapper/fsloader"
 	_ 			"./fuseendpoint/fuseloader"
 
 	FSFact		"./fswrapper/fscreator"
 	FDFact 		"./fuseendpoint/fusecreator"
-
-	Config 		"./global"
 )
 
 // Usage and global config are part of 'global' package
-// Sample CLI : go run blobfuse.go -mount-path="~/blob_mnt" -tmp-path="/mnt/blobfusetmp" -fs=loopback -fd=bazil
+// Sample CLI : go run blobfuse.go -mount-path="~/blob_mnt" -tmp-path="/mnt/blobfusetmp" -fs=loopback -fd=bazil -log-level=DEBUG -log-file=blobfuse.log
 
 func main() {	
-	//Config.PrintOptionValues()
+	Config.PrintOptionValues()
 
 	fs, _ := FSFact.GetFileSystem(*Config.BlobfuseConfig.FSName)
 	if fs == nil {
@@ -40,5 +41,7 @@ func main() {
 	fd.SetConsumer(nil)
 	FDFact.ReleaseFuseDriver(fd)
 	FSFact.ReleaseFileSystem(fs)
+
+	Config.StopLogger()
 }
 

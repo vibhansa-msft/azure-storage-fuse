@@ -1,10 +1,11 @@
 
-package clioptions
+package cliparser
 
 import (
 	"fmt"
 	"flag"
 	"os"
+	Logger 	"./logger"
 )
 
 // GlobalConfig : Global config for the application
@@ -13,23 +14,34 @@ type GlobalConfig struct {
 	TmpPath			*string			// Mandatory 	: Path to the tmp directory
 
 	FSName			*string			// Optional		: FS Name (dummy / loopback) 	
-	FDName			*string			// Optional		: FS Name (bazil) 	
+	FDName			*string			// Optional		: FS Name (bazil) 
+	
+	LogLevel		*string			// Optional		: Logging Level
+	LogFile			*string			// Optional		: Log file name
+	LogFileSizeMB	*int			// Optional		: Size of each log file at max
+	LogFileCount	*int			// Optional		: Number of logs files to be used for rotation
 }
 
 // BlobfuseConfig : Global config for the application
 var BlobfuseConfig GlobalConfig
 
 func init() {
-	// Add all your command line options parsing here
+	// Basic config
 	BlobfuseConfig.MountPath 	= flag.String("mount-path", 	".", 			"Path for the mount directory")
 	BlobfuseConfig.TmpPath 		= flag.String("tmp-path", 		".", 			"Path for the temp directory") 
 	BlobfuseConfig.FSName 		= flag.String("fs", 			"loopback",		"File System to be used") 
 	BlobfuseConfig.FDName 		= flag.String("fd", 			"bazil", 		"Fuse Driver to be used") 
 
+	// Logging related config
+	BlobfuseConfig.LogLevel 			= flag.String("log-level", 		"WARN", "Logging level")
+	BlobfuseConfig.LogFile 				= flag.String("log-file", 		"blobfuse.log", "Name of the log file")
+	BlobfuseConfig.LogFileSizeMB 		= flag.Int("log-file-size", 	100, "Size of each log file in MB")
+	BlobfuseConfig.LogFileCount 		= flag.Int("log-file-count", 	10, "Total number of log files")
 
 	flag.Usage = Usage
 
 	flag.Parse()
+	StartLogger()
 }
 
 
@@ -41,13 +53,28 @@ func Usage() {
 
 // PrintOptionValues : Print the command line arguments
 func PrintOptionValues() {
-	fmt.Println("Cli option : Mount path : " + *BlobfuseConfig.MountPath)
-	fmt.Println("Cli option : Tmp path : " + *BlobfuseConfig.TmpPath)
-	fmt.Println("Cli option : FS Name : " + *BlobfuseConfig.FSName)
-	fmt.Println("Cli option : FD Name : " + *BlobfuseConfig.FDName)
-
+	Logger.LogInfo("Cli option : Mount path : " + *BlobfuseConfig.MountPath)
+	Logger.LogInfo("Cli option : Tmp path : " + *BlobfuseConfig.TmpPath)
+	Logger.LogInfo("Cli option : FS Name : " + *BlobfuseConfig.FSName)
+	Logger.LogInfo("Cli option : FD Name : " + *BlobfuseConfig.FDName)
 }
 
+
+// StartLogger : Init and start the logging infra
+func StartLogger(){	
+	var logcfg Logger.LogConfig
+	logcfg.LogLevel 		= *BlobfuseConfig.LogLevel
+	logcfg.LogFile 			= *BlobfuseConfig.LogFile
+	logcfg.LogSizeMB 		= *BlobfuseConfig.LogFileSizeMB
+	logcfg.LogFileCount		= *BlobfuseConfig.LogFileCount
+
+	Logger.StartLogger(logcfg)
+}
+
+// StopLogger : Stop the logging infra
+func StopLogger() {
+	Logger.StopLogger()
+}
 
 
 

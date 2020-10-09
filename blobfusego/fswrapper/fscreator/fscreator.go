@@ -4,6 +4,7 @@ package fscreator
 import (
 	"sync"
 	FSIntf "../fsinterface"
+	Logger "../../global/logger"
 )
 
 
@@ -26,7 +27,7 @@ var (
 
 // RegisterFileSystem : Registration method for all the implementations to factory
 func RegisterFileSystem(fsName string, fs FSManager) {	
-	//fmt.Println("Registering : " + fsName)
+	Logger.LogDebug("Registering : " + fsName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
@@ -41,7 +42,7 @@ func RegisterFileSystem(fsName string, fs FSManager) {
 
 // GetFileSystem : Factory method to get the object based on name
 func GetFileSystem(fsName string) (FSIntf.FileSystem, bool) {
-	//fmt.Println("Generating object of : " + fsName)
+	Logger.LogDebug("Generating object of : " + fsName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
@@ -56,7 +57,7 @@ func GetFileSystem(fsName string) (FSIntf.FileSystem, bool) {
 
 // ReleaseFileSystem : Factory method to release the object
 func ReleaseFileSystem(fs FSIntf.FileSystem) bool{
-	//fmt.Println("Generating object of : " + fsName)
+	Logger.LogDebug("Generating object of : " + fs.GetName())
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()

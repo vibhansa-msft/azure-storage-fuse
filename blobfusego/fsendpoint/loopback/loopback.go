@@ -4,7 +4,8 @@ package loopback
 import (
 	"fmt"
     FSIntf "../../fswrapper/fsinterface"
-    FSFact "../../fswrapper/fscreator"
+	FSFact "../../fswrapper/fscreator"
+	Logger "../../global/logger"
 )
 
 type loopbackFS struct{
@@ -28,7 +29,7 @@ func CreateObj() FSIntf.FileSystem {
     if instance == nil {
 		instance = &loopbackFS{}
 		instance.refCount = 0
-		fmt.Println("Created first instances of " + fsName)
+		Logger.LogDebug("Created first instances of " + fsName)
     }
     instance.refCount++
     return instance
@@ -39,7 +40,7 @@ func ReleaseObj() {
     instance.refCount--
     if instance.refCount == 0 {
 		instance = nil
-		fmt.Println("Released all instances of " + fsName)
+		Logger.LogDebug("Released all instances of " + fsName)
     }
 }
 

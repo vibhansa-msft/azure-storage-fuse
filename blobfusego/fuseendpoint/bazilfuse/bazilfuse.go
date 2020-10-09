@@ -1,9 +1,9 @@
 package bazilfuse
 
 import (
-	"fmt"
 	FDFact "../fusecreator"
 	FSIntf "../../fswrapper/fsinterface"
+	Logger "../../global/logger"
 )
 
 type bazilFD struct{
@@ -27,7 +27,7 @@ func CreateObj() FDFact.FuseDriver {
     if instance == nil {
 		instance = &bazilFD{}
 		instance.refCount = 0
-		fmt.Println("Created first instances of " + fdName)
+		Logger.LogDebug("Created first instances of " + fdName)
     }
     instance.refCount++
     return instance
@@ -38,7 +38,7 @@ func ReleaseObj() {
     instance.refCount--
     if instance.refCount == 0 {
 		instance = nil
-		fmt.Println("Released all instances of " + fdName)
+		Logger.LogDebug("Released all instances of " + fdName)
     }
 }
 
@@ -63,7 +63,7 @@ func (f *bazilFD) SetConsumer(cons FSIntf.FileSystem) int {
 // Get the file system name
 func (f *bazilFD) GetName() string {
 	if instance.consumer != nil {
-		fmt.Println("Calling FS from FD : " + instance.consumer.GetName())
+		Logger.LogDebug("Calling FS from FD : " + instance.consumer.GetName())
 	}
 	return fdName
 }
