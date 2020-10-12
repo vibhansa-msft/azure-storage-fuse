@@ -6,19 +6,20 @@ import (
 	"os"
 
 	// As Config initialize the logger this shall always be the first import
-	Config 		"./global"
+	Config 		"github.com/blobfusego/global"
 
-	_			"./fswrapper/fsinterface"
-	_ 			"./fswrapper/fsloader"
-	_ 			"./fuseendpoint/fuseloader"
+	_			"github.com/blobfusego/fswrapper/fsinterface"
+	_ 			"github.com/blobfusego/fswrapper/fsloader"
+	_ 			"github.com/blobfusego/fuseendpoint/fuseloader"
 
-	FSFact		"./fswrapper/fscreator"
-	FDFact 		"./fuseendpoint/fusecreator"
-	Logger		"./global/logger"
+	FSFact		"github.com/blobfusego/fswrapper/fscreator"
+	FDFact 		"github.com/blobfusego/fuseendpoint/fusecreator"
+	Logger		"github.com/blobfusego/global/logger"
 )
 
 // Usage and global config are part of 'global' package
-// Sample CLI : go run blobfuse.go -mount-path="~/blob_mnt" -tmp-path="/mnt/blobfusetmp" -fs=loopback -fd=bazil -log-level=DEBUG -log-file=blobfuse.log
+// Sample CLI : 
+// go run blobfuse.go -mount-path="~/blob_mnt" -tmp-path="/mnt/blobfusetmp" -fs=loopback -fd=bazil -log-level=LOG_DEBUG -log-file=blobfuse.log
 
 func main() {	
 	Config.PrintOptionValues()
@@ -39,12 +40,11 @@ func main() {
 	
 	fd.SetConsumer(fs)
 	fmt.Println("FD Name : " + fd.GetName())
-
-
-	fd.SetConsumer(nil)
+	Logger.LogInfo("PIPELINE : " + fd.PrintPipeline())
 
 	Logger.LogInfo("Starting to destroy pipeline")
-
+	fd.SetConsumer(nil)
+	
 	FDFact.ReleaseFuseDriver(fd)
 	FSFact.ReleaseFileSystem(fs)
 

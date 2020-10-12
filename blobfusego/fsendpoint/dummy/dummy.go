@@ -2,9 +2,9 @@ package dummy
 
 
 import (
-	"fmt"
-	FSIntf "../../fswrapper/fsinterface"
-	FSFact "../../fswrapper/fscreator"
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
+	FSFact "github.com/blobfusego/fswrapper/fscreator"
+	Logger "github.com/blobfusego/global/logger"
 )
 
 type dummyFS struct{
@@ -27,7 +27,7 @@ func CreateObj() FSIntf.FileSystem {
     if instance == nil {
 		instance = &dummyFS{}
 		instance.refCount = 0
-		fmt.Println("Created first instances of " + fsName)
+		Logger.LogDebug("Created first instances of " + fsName)
     }
     instance.refCount++
     return instance
@@ -37,7 +37,7 @@ func CreateObj() FSIntf.FileSystem {
 func ReleaseObj() {
     instance.refCount--
     if instance.refCount == 0 {
-		fmt.Println("Released all instances of " + fsName)
+		Logger.LogDebug("Released all instances of " + fsName)
 		instance = nil
     }
 }
@@ -71,8 +71,13 @@ func (f *dummyFS) SetConsumer(cons FSIntf.FileSystem) int {
 
 // Get the file system stats
 func (f *dummyFS) StatFS() int {
-	fmt.Println(fsName + "called at the last level")
+	Logger.LogDebug(fsName + "called at the last level")
 	return 0
+}
+
+// PrintPipeline : Print the current pipeline
+func (f *dummyFS) PrintPipeline() string {
+	return (fsName + " -> X ")
 }
 
 // Directory level operations
@@ -147,7 +152,7 @@ func (f *dummyFS) ReadLink(path string, link string) int {
 }
 
 // Filesystem level operations
-func (f *dummyFS) GetAttr(path string) int {
+func (f *dummyFS) GetAttr(path string, attr *FSIntf.BlobAttr) int {
 	panic("not implemented") // TODO: Implement
 }
 

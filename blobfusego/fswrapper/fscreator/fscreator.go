@@ -3,8 +3,8 @@ package fscreator
 
 import (
 	"sync"
-	FSIntf "../fsinterface"
-	Logger "../../global/logger"
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
+	Logger "github.com/blobfusego/global/logger"
 )
 
 

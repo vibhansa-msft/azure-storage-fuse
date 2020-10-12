@@ -28,7 +28,7 @@ const (
 
 // LogLevelNames : Names of different log levels
 var LogLevelNames = []string{
-	"DEBUG", "INFO", "WARN", "ERR", "CRIT",
+	"LOG_DEBUG", "LOG_INFO", "LOG_WARN", "LOG_ERR", "LOG_CRIT",
 }
 
 // GetLogLevel : From strin get the log level
@@ -36,19 +36,20 @@ func getLogLevel(lvl string) LogLevel {
 	lvl = strings.ToUpper(strings.Trim(lvl, " "))
 
 	switch lvl {
-	case "DEBUG":
+	case "LOG_DEBUG":
 		return LogLvlDebug
-	case "INFO":
+	case "LOG_INFO":
 		return LogLvlInfo
-	case "WARN":
+	case "LOG_WARN":
 		return LogLvlWarn
-	case "WARNING":
+	case "LOG_WARNING":
 		return LogLvlWarn
-	case "ERROR":
+	case "LOG_ERROR":
 		return LogLvlErr
-	case "FATAL":
+	case "LOG_CRIT":
 		return LogLvlCrit
 	default:
+		fmt.Println("Invalid logging level, default to LOG_WARN")
 		return LogLvlWarn
 	}
 }

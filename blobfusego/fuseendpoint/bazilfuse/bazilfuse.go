@@ -1,9 +1,9 @@
 package bazilfuse
 
 import (
-	FDFact "../fusecreator"
-	FSIntf "../../fswrapper/fsinterface"
-	Logger "../../global/logger"
+	FDFact "github.com/blobfusego/fuseendpoint/fusecreator"
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
+	Logger "github.com/blobfusego/global/logger"
 )
 
 type bazilFD struct{
@@ -60,13 +60,16 @@ func (f *bazilFD) SetConsumer(cons FSIntf.FileSystem) int {
 	return 0;
 }
 
-// Get the file system name
+// GetName : Get the fuse driver name
 func (f *bazilFD) GetName() string {
-	if instance.consumer != nil {
-		Logger.LogDebug("Calling FS from FD : " + instance.consumer.GetName())
-	}
 	return fdName
 }
 
-
+// PrintPipeline : Print the current pipeline
+func (f *bazilFD) PrintPipeline() string {
+	if instance.consumer != nil {
+		return (fdName + " -> " + instance.consumer.PrintPipeline())
+	} 
+	return (fdName + " -> X ")
+}
 

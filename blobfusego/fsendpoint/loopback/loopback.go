@@ -3,9 +3,9 @@ package loopback
 
 import (
 	"fmt"
-    FSIntf "../../fswrapper/fsinterface"
-	FSFact "../../fswrapper/fscreator"
-	Logger "../../global/logger"
+    FSIntf "github.com/blobfusego/fswrapper/fsinterface"
+	FSFact "github.com/blobfusego/fswrapper/fscreator"
+	Logger "github.com/blobfusego/global/logger"
 )
 
 type loopbackFS struct{
@@ -75,6 +75,15 @@ func (f *loopbackFS) SetConsumer(cons FSIntf.FileSystem) int {
 func (f *loopbackFS) StatFS() int {
 	fmt.Println(fsName + "Calling next level")
 	return instance.consumer.StatFS()
+}
+
+
+// PrintPipeline : Print the current pipeline
+func (f *loopbackFS) PrintPipeline() string {
+	if instance.consumer != nil {
+		return(fsName + " -> " + instance.consumer.PrintPipeline())
+	} 
+	return(fsName + " -> X ")
 }
 
 // Directory level operations
@@ -149,7 +158,7 @@ func (f *loopbackFS) ReadLink(path string, link string) int {
 }
 
 // Filesystem level operations
-func (f *loopbackFS) GetAttr(path string) int {
+func (f *loopbackFS) GetAttr(path string, attr *FSIntf.BlobAttr) int {
 	panic("not implemented") // TODO: Implement
 }
 

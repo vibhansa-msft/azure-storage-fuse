@@ -2,8 +2,8 @@ package fusecreator
 
 import (
 	"sync"
-	FSIntf "../../fswrapper/fsinterface"
-	Logger "../../global/logger"
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
+	Logger "github.com/blobfusego/global/logger"
 )
 
 // FuseDriver : Wrapper which eveyr fuse driver needs to implement
@@ -20,6 +20,9 @@ type FuseDriver interface {
 	
 	// Get the file system name
 	GetName() string
+
+	// Print the pipeline
+	PrintPipeline() string
 }
 
 

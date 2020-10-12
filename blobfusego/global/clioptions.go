@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"flag"
 	"os"
-	Logger 	"./logger"
+	Logger 	"github.com/blobfusego/global/logger"
 )
 
 // GlobalConfig : Global config for the application
@@ -20,6 +20,9 @@ type GlobalConfig struct {
 	LogFile			*string			// Optional		: Log file name
 	LogFileSizeMB	*int			// Optional		: Size of each log file at max
 	LogFileCount	*int			// Optional		: Number of logs files to be used for rotation
+
+
+	DefaultPerm		os.FileMode		// Default permissions for each blob mounted 
 }
 
 // BlobfuseConfig : Global config for the application
@@ -42,6 +45,8 @@ func init() {
 
 	flag.Parse()
 	StartLogger()
+
+	BlobfuseConfig.DefaultPerm = 0777
 }
 
 
