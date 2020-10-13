@@ -2,28 +2,27 @@ package bazilfuse
 
 import (
 	"os"
-	"sync"
 	"sync/atomic"
 	"syscall"
 
 	Logger "github.com/blobfusego/global/logger"
+	Config "github.com/blobfusego/global"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"golang.org/x/net/context"
 )
 
-var conn *Conn
-var fileSys *FS
+var bazilConn 	*fuse.Conn
+var bazilCfg	*fs.Config
+var bazilFS 	*FS
 
 // FS is the File System created to serve the calls at user space
 type FS struct {
-	rootPath    string					// Path to the root of this FS
-
-	nodeLock	sync.RWMutex			// Lock for the nodeMap
-	nodeMap		map[string][]*fs.Node		// List of nodes within this FS
-	
-	lastNodeId	uint64
+	mountPath		string					// Path to the root of this FS
+	tempPath	 	string					// Path to temp directory
+	lastNodeId		uint64					// Node id assigned to last new node
+	rootDir			*Dir					// Pointer to Dir structure of the root
 }
 
 // ErrToFuseErr : Convert OS error to Fuse err codes
@@ -40,10 +39,9 @@ func ErrToFuseErr(err error) error {
 	}
 }
 
-
 // nextID : Generate the next INode id for the element
-func (fsys *FS) nextID() uint64 {
-    return atomic.AddUint64(&fsys.lastNodeId, 1)
+func nextID() uint64 {
+    return atomic.AddUint64(&bazilFS.lastNodeId, 1)
 }
 
 
@@ -52,91 +50,38 @@ func NewFS() *FS {
 	Logger.LogDebug("FD : Creating the root structure for FS")
 
 	fsys := &FS{
-		rootPath: 	"/",
-		nodeMap:    make(map[string][]*fs.Node),
+		mountPath: 		*Config.BlobfuseConfig.MountPath,
+		tempPath:    	*Config.BlobfuseConfig.TmpPath,
+		lastNodeId: 	0,
+		rootDir:		&Dir{
+							path: 	"",
+						},
 	}
+
+	fsys.rootDir.fs 	= bazilFS
+	fsys.rootDir.nodeid			= nextID()
 
 	return fsys
-}
-
-// NewNode : Create a new node for the FS
-func (fsys *FS) NewNode(n *fs.Node) {
-	path := n.getRealPath()
-	Logger.LogDebug("FD : NewNode called for " + path)
-
-	fsys.nodeLock.Lock()
-	defer fsys.nodeLock.Unlock()
-	fsys.nodeMap[path] = append(fsys.nodeMap[path], n)
-	fsys.nextID()
-}
-
-
-// RenameNode : Rename existing node
-func (fsys *FS) RenameNode(oldPath string, newPath string) {
-	Logger.LogDebug("FD : RenameNode called for %s to %s", oldPath, newPath)
-
-	fsys.nodeLock.Lock()
-	defer fsys.nodeLock.Unlock()
-
-	fsys.nodeMap[newPath] = append(fsys.nodeMap[newPath], fsys.nodeMap[oldPath]...)
-	delete(fsys.nodeMap, oldPath)
-	for _, n := range fsys.nodeMap[newPath] {
-		n.updateRealPath(newPath)
-	}
-}
-
-// ReleaseNode : Release / Delete the existsing node
-func (fsys *FS) ReleaseNode(n *fs.Node) {
-	Logger.LogDebug("FD : ReleaseNode called for " + n.realPath)
-
-	fsys.nodeLock.Lock()
-	defer fsys.nodeLock.Unlock()
-
-	nodes, ok := fsys.nodeMap[n.realPath]
-	if !ok {
-		return
-	}
-
-	found := -1
-	for i, node := range nodes {
-		if node == n {
-			found = i
-			break
-		}
-	}
-
-	if found > -1 {
-		nodes = append(nodes[:found], nodes[found+1:]...)
-	}
-
-	if len(nodes) == 0 {
-		delete(fsys.nodeMap, n.realPath)
-	} else {
-		fsys.nodeMap[n.realPath] = nodes
-	}
 }
 
 ///   STANDARD INTERFACE IMPLEMENTATATIONS
 
 // Root : Create the root node for the FS
 func (fsys *FS) Root() (n fs.Node, err error) {
-	Logger.LogDebug("FD : Root called for " + fsys.rootPath)
-
-	nn := &fs.Node{realPath: fsys.rootPath, isDir: true, fs: fsys}
-	fsys.NewNode(nn)
-	return nn, nil
+	Logger.LogDebug("FD : Root called for " + fsys.mountPath)
+	return fsys.rootDir, nil
 }
 
 
 // Statfs implements fsys.FSStatfser interface for *FS
-func (fsys *FS) Statfs(ctx context.Context,
-					req *fuse.StatfsRequest, 
-					resp *fuse.StatfsResponse) (err error) {
+func (fsys *FS) Statfs(	ctx context.Context,
+						req *fuse.StatfsRequest, 
+						resp *fuse.StatfsResponse) (err error) {
 
-	Logger.LogDebug("FD : Statfs called for " + fsys.rootPath)
+	Logger.LogDebug("FD : Statfs called for " + fsys.mountPath)
 
 	var stat syscall.Statfs_t
-	if err := syscall.Statfs(fsys.rootPath, &stat); err != nil {
+	if err := syscall.Statfs(fsys.mountPath, &stat); err != nil {
 		Logger.LogErr("FD : Failed to do stat on root")
 		return ErrToFuseErr(err)
 	}
@@ -150,3 +95,23 @@ func (fsys *FS) Statfs(ctx context.Context,
 	
 	return nil
 }
+
+
+
+// Compile-time interface checks.
+var _ fs.FS 				= (*FS)(nil)
+var _ fs.FSStatfser 		= (*FS)(nil)
+
+var _ fs.Node 				= (*Dir)(nil)
+var _ fs.NodeCreater 		= (*Dir)(nil)
+var _ fs.NodeMkdirer 		= (*Dir)(nil)
+var _ fs.NodeRemover 		= (*Dir)(nil)
+var _ fs.NodeRenamer 		= (*Dir)(nil)
+var _ fs.NodeStringLookuper = (*Dir)(nil)
+
+var _ fs.HandleReadAller 	= (*File)(nil)
+var _ fs.HandleWriter 		= (*File)(nil)
+var _ fs.Node 				= (*File)(nil)
+var _ fs.NodeOpener 		= (*File)(nil)
+var _ fs.NodeSetattrer 		= (*File)(nil)
+var _ fs.HandleFlusher 		= (*File)(nil)

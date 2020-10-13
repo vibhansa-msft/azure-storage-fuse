@@ -29,8 +29,8 @@ func init() {
 // CreateObj : Create the dummy FS object for factory
 func CreateObj() FDFact.FuseDriver {
     if instance == nil {
-		conn = nil 
-		fileSys = nil
+		bazilConn = nil 
+		bazilFS = nil
 
 		instance = &bazilFD{}
 		instance.refCount = 0
@@ -54,27 +54,27 @@ func ReleaseObj() {
 // InitFuse : Initialize the fuse driver
 func (f *bazilFD) InitFuse() {
 	Logger.LogDebug("Init the FD : " + fdName)
-	conn, err := fuse.Mount(
-				*config.BlobfuseConfig.MountPath,
+	bazilConn, err := fuse.Mount(
+				*Config.BlobfuseConfig.MountPath,
 				fuse.FSName("blobfuse"),
 				fuse.Subtype("blobfuse-go"),
 				fuse.LocalVolume(),
 				fuse.VolumeName(*Config.BlobfuseConfig.Container),
 			)
 	if err != nil {
-		if err := conn.MountError; err != nil {
+		if err := bazilConn.MountError; err != nil {
 			panic(err)
 		}
 		Logger.LogErr("Failed to mount")
 		panic("Failed to mount")
 	}
 
-	cfg := &fs.Config()
-	fileSys := NewFS()
+	bazilCfg = &fs.Config{}
+	bazilFS = NewFS()
 	
-	<-conn.Ready
-	if err := conn.MountError; err != nil {
-		Logger.LogErr(err)
+	<-bazilConn.Ready
+	if err := bazilConn.MountError; err != nil {
+		Logger.LogErr("Mount Error :%v", err)
 	}
 
 	Logger.LogDebug(fdName + " Initialized successfully")
@@ -84,16 +84,18 @@ func (f *bazilFD) InitFuse() {
 // Start  : begine the FUSE Listener
 func (f *bazilFD) Start() int {
 	Logger.LogDebug("Start the FD : " + fdName)
-	if err := fs.Serve(filesys); err != nil {
-		Logger.LogErr(err)
+	if err := fs.Serve(bazilConn, bazilFS); err != nil {
+		Logger.LogErr("FD : Failed to start the fuse driver : %v", err)
+		return -1
 	}
+	return 0
 }
 
 
 // DeInitFuse : DeInitialize the fuse driver
 func (f *bazilFD) DeInitFuse() {
 	Logger.LogDebug("Deinit the FD : " + fdName)
-	conn.Close()
+	bazilConn.Close()
 }
 
 // SetConsumer : Set the next layer that handles the call

@@ -43,7 +43,9 @@ func main() {
 	Logger.LogInfo("PIPELINE : " + fd.PrintPipeline())
 
 	fd.InitFuse()
-	fd.Start()
+	if fd.Start() != 0 {
+		Logger.LogErr("Failed to start Fuse Driver")
+	}
 
 	Logger.LogInfo("Starting to destroy pipeline")
 	fd.DeInitFuse()
