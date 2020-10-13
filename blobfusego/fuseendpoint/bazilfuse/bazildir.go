@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Config "github.com/blobfusego/global"
 	Logger "github.com/blobfusego/global/logger"
 
@@ -15,20 +16,27 @@ import (
 
 // Dir : Structure holding the Dir info for fuse
 type Dir struct {
-	path   string
-	dirlck sync.RWMutex
+	path string
+
 	nodeid uint64
-	fs     *FS
+
+	dirlck  sync.RWMutex
+	nodelst map[string]fs.Node
 }
 
 // Attr : Get the attributes of the given directory
-func (d *Dir) Attr(ctx context.Context, o *fuse.Attr) error {
+func (d Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 	Logger.LogDebug("FD : Dir Attr called for %s", d.path)
+
+	//o.Inode = d.nodeid
+
+	o.Uid = 0
+	o.Gid = 0
 
 	if d.path == "" {
 		// Called for mount path
 		Logger.LogDebug("FD : Dir Attr called for mount point")
-		o.Inode = d.nodeid
+
 		o.Valid = time.Duration(*Config.BlobfuseConfig.AttrTimeOut)
 		o.Atime = Config.BlobfuseConfig.MountTime
 		o.Mtime = o.Atime
@@ -37,11 +45,15 @@ func (d *Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 
 		o.Mode = os.ModeDir | Config.BlobfuseConfig.DefaultPerm
 		o.Size = 4096
+	} else {
+		var attr FSIntf.BlobAttr
+		if err := instance.consumer.GetAttr(d.path, &attr); err != nil {
+			Logger.LogDebug("FD : Failed to get attribute of %s (%v)", d.path, err)
+			return err
+		}
 
-		o.Uid = 0
-		o.Gid = 0
+		BlobAttrToFuseAttr(&attr, o)
 	}
-
 	return nil
 }
 
@@ -57,12 +69,50 @@ func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		Logger.LogDebug("FD : Dir Lookup ignored for %s", name)
 		return nil, fuse.ENOENT
 	}
-	return &Dir{}, nil
+	d.dirlck.Lock()
+	defer d.dirlck.Unlock()
+
+	n, exists := d.nodelst[name]
+	if !exists {
+		return nil, fuse.ENOENT
+	}
+
+	return n, nil
 }
 
 // ReadDirAll : Get the list of objects from a directory
 func (d *Dir) ReadDirAll(ctx context.Context) (dirs []fuse.Dirent, err error) {
 	Logger.LogDebug("FD : Dir ReadDirAll called for %s", d.path)
+
+	dirList := instance.consumer.ReadDir(d.path)
+
+	d.dirlck.Lock()
+	defer d.dirlck.Unlock()
+
+	for _, f := range dirList {
+		ent := fuse.Dirent{
+			Name: f.Name,
+			//Inode: bazilFS.nextID(),
+		}
+
+		if f.Flags.IsSet(FSIntf.PropFlagIsDir) {
+			ent.Type = fuse.DT_Dir
+			d.nodelst[f.Name] = Dir{
+				path: d.path + "/" + f.Name,
+				//nodeid:  ent.Inode,
+				nodelst: make(map[string]fs.Node),
+			}
+		} else {
+			ent.Type = fuse.DT_File
+			d.nodelst[f.Name] = File{
+				path: d.path + "/" + f.Name,
+				//nodeid: ent.Inode,
+			}
+		}
+
+		dirs = append(dirs, ent)
+	}
+
 	return dirs, err
 }
 

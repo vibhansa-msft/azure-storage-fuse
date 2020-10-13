@@ -1,9 +1,8 @@
-
 package fsinterface
 
 import (
-	"time"
 	"os"
+	"time"
 )
 
 // FileSystem : Master interface for the file system
@@ -16,7 +15,7 @@ type FileSystem interface {
 
 	// Set the next component in pipeline for this system
 	SetConsumer(cons FileSystem) int
-	
+
 	// Get the file system name
 	GetName() string
 
@@ -25,47 +24,45 @@ type FileSystem interface {
 
 	// Print the pipeline
 	PrintPipeline() string
-	
+
 	// Get the file system stats
 	StatFS() int
 
 	// Directory level operations
-	CreateDir	(path string) int
-	DeleteDir	(path string)
+	CreateDir(path string) int
+	DeleteDir(path string)
 
-	OpenDir		(path string) int
-	CloseDir	(path string)
+	OpenDir(path string) int
+	CloseDir(path string)
 
-	ReadDir		(path string) []BlobAttr
-	RenameDir	(path string, name string) int
-
+	ReadDir(path string) []BlobAttr
+	RenameDir(path string, name string) int
 
 	// File level operations
-	CreateFile	(path string, mode int) int
-	DeleteFile	(path string) int
+	CreateFile(path string, mode int) int
+	DeleteFile(path string) int
 
-	OpenFile	(path string, mode int) int
-	CloseFile	(path string)
+	OpenFile(path string, mode int) int
+	CloseFile(path string)
 
-	ReadFile	(path string, offset int, length int) int
-	WriteFile	(path string, offset int, length int) int
+	ReadFile(path string, offset int, length int) int
+	WriteFile(path string, offset int, length int) int
 
-	FlushFile	(path string) int
-	ReleaseFile	(path string) int
-	UnlinkFile	(path string) int
+	FlushFile(path string) int
+	ReleaseFile(path string) int
+	UnlinkFile(path string) int
 
 	// Symlink operations
-	CreateLink	(path string, dst string) int
-	ReadLink	(path string, link string) int
+	CreateLink(path string, dst string) int
+	ReadLink(path string, link string) int
 
 	// Filesystem level operations
-	GetAttr		(path string, attr *BlobAttr) error
-	SetAttr		(path string) int
+	GetAttr(path string, attr *BlobAttr) error
+	SetAttr(path string) int
 
-	Chmod		(path string, mod int) int
-	Chown		(path string, owner string) int
+	Chmod(path string, mod int) int
+	Chown(path string, owner string) int
 }
-
 
 //////// Properties related interface and metadata
 
@@ -73,29 +70,30 @@ type FileSystem interface {
 type BitMap uint16
 
 // IsSet : Check whether the given bit is set or not
-func (bm BitMap) IsSet(bit uint16) bool		{ return (bm & (1 << bit)) != 0}
+func (bm BitMap) IsSet(bit uint16) bool { return (bm & (1 << bit)) != 0 }
+
 // Set : Set the given bit in bitmap
-func (bm BitMap) Set(bit uint16) 			{ bm |= (1 << bit)}
+func (bm *BitMap) Set(bit uint16) { *bm |= (1 << bit) }
+
 // Clear : Clear the given bit from bitmap
-func (bm BitMap) Clear(bit uint16)			{ bm &= ^(1 << bit)}
+func (bm BitMap) Clear(bit uint16) { bm &= ^(1 << bit) }
 
 // Flags represented in BitMap for various properties of the object
 const (
-    PropFlagUnknown       uint16 = iota
-    PorpFlagNotExists
-    PorpFlagIsDir
-    PorpFlagEmptyDir
+	PropFlagUnknown uint16 = iota
+	PropFlagNotExists
+	PropFlagIsDir
+	PropFlagEmptyDir
 	PropFlagSymlink
-    PropFlagMax   
+	PropFlagMax
 )
-
 
 // BlobAttr : Attributes of any file/directory
 type BlobAttr struct {
-	Name		string			// name of the blob
-	Size		uint64			// size of the object
-	Mode		os.FileMode		// permissions in 0xxx format
-	Modtime		time.Time		// last modified time
-	Flags		BitMap			// Flags of the object
+	Name    string      // name of the blob
+	Size    uint64      // size of the object
+	Mode    os.FileMode // permissions in 0xxx format
+	Modtime time.Time   // last modified time
+	Flags   BitMap      // Flags of the object
+	NodeID  uint64      // Node Id of this element
 }
-

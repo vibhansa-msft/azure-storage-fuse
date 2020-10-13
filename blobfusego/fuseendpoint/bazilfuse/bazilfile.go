@@ -1,6 +1,7 @@
 package bazilfuse
 
 import (
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Logger "github.com/blobfusego/global/logger"
 
 	"bazil.org/fuse"
@@ -10,14 +11,19 @@ import (
 
 type File struct {
 	path   string
-	size   uint64
 	nodeid uint64
-	fs     *FS
 }
 
 // Attr : Get the properties of a file
-func (f *File) Attr(ctx context.Context, o *fuse.Attr) error {
+func (f File) Attr(ctx context.Context, o *fuse.Attr) error {
 	Logger.LogDebug("FD : File Attr called for %s", f.path)
+
+	var attr FSIntf.BlobAttr
+	if err := instance.consumer.GetAttr(f.path, &attr); err != nil {
+		return err
+	}
+
+	BlobAttrToFuseAttr(&attr, o)
 	return nil
 }
 

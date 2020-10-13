@@ -4,7 +4,9 @@ import (
 	"os"
 	"sync/atomic"
 	"syscall"
+	"time"
 
+	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Config "github.com/blobfusego/global"
 	Logger "github.com/blobfusego/global/logger"
 
@@ -59,11 +61,11 @@ func NewFS() *FS {
 		tempPath:   *Config.BlobfuseConfig.TmpPath,
 		lastNodeId: 0,
 		rootDir: &Dir{
-			path: "",
+			path:    "",
+			nodelst: make(map[string]fs.Node),
 		},
 	}
 
-	fsys.rootDir.fs = fsys
 	fsys.rootDir.nodeid = fsys.nextID()
 
 	return fsys
@@ -90,30 +92,48 @@ func (fsys *FS) Statfs(ctx context.Context,
 		return ErrToFuseErr(err)
 	}
 
-	resp.Blocks 	= stat.Blocks
-	resp.Bfree 		= stat.Bfree
-	resp.Bavail 	= stat.Bavail
-	resp.Files 		= fsys.lastNodeId
-	resp.Ffree 		= stat.Ffree
-	resp.Bsize 		= uint32(stat.Bsize)
+	resp.Blocks = stat.Blocks
+	resp.Bfree = stat.Bfree
+	resp.Bavail = stat.Bavail
+	resp.Files = fsys.lastNodeId
+	resp.Ffree = stat.Ffree
+	resp.Bsize = uint32(stat.Bsize)
 
 	return nil
 }
 
+// BlobAttrToFuseAttr : Convert Blob Attr to Fuse Attr
+func BlobAttrToFuseAttr(fsAttr *FSIntf.BlobAttr, fuseAttr *fuse.Attr) {
+	fuseAttr.Valid = time.Duration(*Config.BlobfuseConfig.AttrTimeOut)
+	fuseAttr.Atime = fsAttr.Modtime
+	fuseAttr.Mtime = fuseAttr.Atime
+	fuseAttr.Ctime = fuseAttr.Atime
+	fuseAttr.Crtime = fuseAttr.Atime
+
+	if fsAttr.Flags.IsSet(FSIntf.PropFlagIsDir) {
+		fuseAttr.Mode = os.ModeDir | Config.BlobfuseConfig.DefaultPerm
+		fuseAttr.Size = 4096
+	} else {
+		fuseAttr.Mode = Config.BlobfuseConfig.DefaultPerm
+		fuseAttr.Size = fsAttr.Size
+	}
+
+}
+
 // Compile-time interface checks.
-var _ fs.FS 					= (*FS)(nil)
-var _ fs.FSStatfser 			= (*FS)(nil)
+var _ fs.FS = (*FS)(nil)
+var _ fs.FSStatfser = (*FS)(nil)
 
-var _ fs.Node 					= (*Dir)(nil)
-var _ fs.NodeCreater 			= (*Dir)(nil)
-var _ fs.NodeMkdirer 			= (*Dir)(nil)
-var _ fs.NodeRemover 			= (*Dir)(nil)
-var _ fs.NodeRenamer 			= (*Dir)(nil)
-var _ fs.NodeStringLookuper 	= (*Dir)(nil)
+var _ fs.Node = (*Dir)(nil)
+var _ fs.NodeCreater = (*Dir)(nil)
+var _ fs.NodeMkdirer = (*Dir)(nil)
+var _ fs.NodeRemover = (*Dir)(nil)
+var _ fs.NodeRenamer = (*Dir)(nil)
+var _ fs.NodeStringLookuper = (*Dir)(nil)
 
-var _ fs.HandleReadAller 		= (*File)(nil)
-var _ fs.HandleWriter 			= (*File)(nil)
-var _ fs.Node 					= (*File)(nil)
-var _ fs.NodeOpener 			= (*File)(nil)
-var _ fs.NodeSetattrer 			= (*File)(nil)
-var _ fs.HandleFlusher 			= (*File)(nil)
+var _ fs.HandleReadAller = (*File)(nil)
+var _ fs.HandleWriter = (*File)(nil)
+var _ fs.Node = (*File)(nil)
+var _ fs.NodeOpener = (*File)(nil)
+var _ fs.NodeSetattrer = (*File)(nil)
+var _ fs.HandleFlusher = (*File)(nil)
