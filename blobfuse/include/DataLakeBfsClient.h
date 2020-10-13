@@ -67,7 +67,7 @@ public:
     void GetExtraProperties(const std::string pathName, BfsFileProperty &prop) override;
     
     virtual int UpdateBlobProperty(std::string pathStr, std::string key, std::string value, METADATA *metadata = NULL);
-
+    virtual int RefreshSASToken(std::string sas);
 private:
     ///<summary>
     /// Helper function - Authenticates with an account key
@@ -89,7 +89,7 @@ private:
     /// Helper function - Renames cached files
     ///</summary>
     ///<returns>Error value</return>
-    long int rename_cached_file(std::string src, std::string dest);
+    long int rename_cached_file(std::string src, std::string dest, bool &cache_cleared);
     ///<summary>
     /// ADLS Client to make dfs storage calls
     ///</summary>
