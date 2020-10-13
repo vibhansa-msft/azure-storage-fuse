@@ -9,10 +9,10 @@ import (
 )
 
 type File struct {
-	path		string
-	size		uint64
-	nodeid		uint64
-	fs			*FS
+	path   string
+	size   uint64
+	nodeid uint64
+	fs     *FS
 }
 
 func (f *File) Attr(ctx context.Context, o *fuse.Attr) error {
@@ -44,4 +44,3 @@ func (f *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	Logger.LogDebug("FD : File Flush called for %s", f.path)
 	return nil
 }
-

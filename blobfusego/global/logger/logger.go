@@ -5,17 +5,19 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
-	"time"
-	"runtime"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
+	"time"
 )
 
 // LogLevel : Level of logging
 type LogLevel int
-var logChannel chan(string)
+
+var logChannel chan (string)
 var logWorkerdone sync.WaitGroup
+var logChannelLock sync.RWMutex
 
 // Severity levels of log messages.
 const (
@@ -56,23 +58,23 @@ func getLogLevel(lvl string) LogLevel {
 
 // getLogString : Convert lov level to its corrosponding string
 func getLogString(lvl LogLevel) string {
-	return LogLevelNames[lvl - 1]
+	return LogLevelNames[lvl-1]
 }
 
 // LogConfig : Configuration to be provided to logging infra
 type LogConfig struct {
-	LogLevel		string
-	LogFile			string
-	LogSizeMB		int
-	LogFileCount	int	
+	LogLevel     string
+	LogFile      string
+	LogSizeMB    int
+	LogFileCount int
 }
 
 // Logger : Global logger structure holding the logging configuration
 var Logger struct {
-	level  		LogLevel       
-	logger 		*log.Logger    
-	LogFile 	io.WriteCloser 
-	ProcPID		int 
+	level  		LogLevel
+	logger  	*log.Logger
+	LogFile 	io.WriteCloser
+	ProcPID 	int
 }
 
 // StartLogger : Initialize the global logger
@@ -84,7 +86,6 @@ func StartLogger(cfg LogConfig) {
 	if cfg.LogFile != "" {
 
 		var err error
-		//fmt.Println("Forwarding the logs to a file")
 		Logger.LogFile, err = os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
 			Logger.LogFile = os.Stdout
@@ -109,35 +110,36 @@ func StopLogger() error {
 	return nil
 }
 
-
 func logDumper(id int, logChannel <-chan string) {
 	defer logWorkerdone.Done()
 
 	//fmt.Println("Log Dumper started")
 
-    for j := range logChannel {
-        Logger.logger.Println(j)
+	for j := range logChannel {
+		Logger.logger.Println(j)
 	}
 
 	//fmt.Println("Log Dumper closed")
 }
 
-
 // EnqeueLog : Dump the log to screen or file as configured
-func EnqeueLog(fomat string, lvl LogLevel, args ... interface{}) {
+func EnqeueLog(fomat string, lvl LogLevel, args ...interface{}) {
 	// Only log if the log level matches the log request
 	if lvl >= Logger.level {
 		_, fn, ln, _ := runtime.Caller(2)
 
 		msg := fmt.Sprintf(fomat, args...)
 		msg = fmt.Sprintf("%s : %d : %s [%s (%d)]: %s",
-			time.Now().Format(time.UnixDate), 
-			Logger.ProcPID,  
-			getLogString(lvl), 
+			time.Now().Format(time.UnixDate),
+			Logger.ProcPID,
+			getLogString(lvl),
 			filepath.Base(fn), ln,
 			msg)
+
+		logChannelLock.Lock()
 		logChannel <- msg
-		
+		logChannelLock.Unlock()
+
 	}
 }
 
