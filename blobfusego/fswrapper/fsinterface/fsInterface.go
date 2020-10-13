@@ -36,7 +36,7 @@ type FileSystem interface {
 	OpenDir		(path string) int
 	CloseDir	(path string)
 
-	ReadDir		(path string) int
+	ReadDir		(path string) []BlobAttr
 	RenameDir	(path string, name string) int
 
 
@@ -59,7 +59,7 @@ type FileSystem interface {
 	ReadLink	(path string, link string) int
 
 	// Filesystem level operations
-	GetAttr		(path string, attr *BlobAttr) int
+	GetAttr		(path string, attr *BlobAttr) error
 	SetAttr		(path string) int
 
 	Chmod		(path string, mod int) int
@@ -92,6 +92,7 @@ const (
 
 // BlobAttr : Attributes of any file/directory
 type BlobAttr struct {
+	Name		string			// name of the blob
 	Size		uint64			// size of the object
 	Mode		os.FileMode		// permissions in 0xxx format
 	Modtime		time.Time		// last modified time

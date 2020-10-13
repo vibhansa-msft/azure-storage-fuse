@@ -4,6 +4,10 @@ import (
 	FDFact "github.com/blobfusego/fuseendpoint/fusecreator"
 	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Logger "github.com/blobfusego/global/logger"
+	Config "github.com/blobfusego/global"
+	
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
 )
 
 type bazilFD struct{
@@ -25,6 +29,9 @@ func init() {
 // CreateObj : Create the dummy FS object for factory
 func CreateObj() FDFact.FuseDriver {
     if instance == nil {
+		conn = nil 
+		fileSys = nil
+
 		instance = &bazilFD{}
 		instance.refCount = 0
 		Logger.LogDebug("Created first instances of " + fdName)
@@ -46,12 +53,47 @@ func ReleaseObj() {
 
 // InitFuse : Initialize the fuse driver
 func (f *bazilFD) InitFuse() {
-	panic("not implemented") // TODO: Implement
+	Logger.LogDebug("Init the FD : " + fdName)
+	conn, err := fuse.Mount(
+				*config.BlobfuseConfig.MountPath,
+				fuse.FSName("blobfuse"),
+				fuse.Subtype("blobfuse-go"),
+				fuse.LocalVolume(),
+				fuse.VolumeName(*Config.BlobfuseConfig.Container),
+			)
+	if err != nil {
+		if err := conn.MountError; err != nil {
+			panic(err)
+		}
+		Logger.LogErr("Failed to mount")
+		panic("Failed to mount")
+	}
+
+	cfg := &fs.Config()
+	fileSys := NewFS()
+	
+	<-conn.Ready
+	if err := conn.MountError; err != nil {
+		Logger.LogErr(err)
+	}
+
+	Logger.LogDebug(fdName + " Initialized successfully")
 }
+
+
+// Start  : begine the FUSE Listener
+func (f *bazilFD) Start() int {
+	Logger.LogDebug("Start the FD : " + fdName)
+	if err := fs.Serve(filesys); err != nil {
+		Logger.LogErr(err)
+	}
+}
+
 
 // DeInitFuse : DeInitialize the fuse driver
 func (f *bazilFD) DeInitFuse() {
-	panic("not implemented") // TODO: Implement
+	Logger.LogDebug("Deinit the FD : " + fdName)
+	conn.Close()
 }
 
 // SetConsumer : Set the next layer that handles the call

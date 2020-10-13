@@ -23,6 +23,10 @@ type FuseDriver interface {
 
 	// Print the pipeline
 	PrintPipeline() string
+
+	// Start the listener
+	Start() int
+
 }
 
 

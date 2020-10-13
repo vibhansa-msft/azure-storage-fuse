@@ -97,7 +97,7 @@ func (f *dummyFS) CloseDir(path string) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (f *dummyFS) ReadDir(path string) int {
+func (f *dummyFS) ReadDir(path string) []FSIntf.BlobAttr {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -152,7 +152,7 @@ func (f *dummyFS) ReadLink(path string, link string) int {
 }
 
 // Filesystem level operations
-func (f *dummyFS) GetAttr(path string, attr *FSIntf.BlobAttr) int {
+func (f *dummyFS) GetAttr(path string, attr *FSIntf.BlobAttr) error {
 	panic("not implemented") // TODO: Implement
 }
 

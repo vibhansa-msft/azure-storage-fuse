@@ -13,6 +13,8 @@ type GlobalConfig struct {
 	MountPath		*string			// Mandatory 	: Path to the mounted directory
 	TmpPath			*string			// Mandatory 	: Path to the tmp directory
 
+	Container		*string			// Mandatory    : Container name to be mounted
+
 	FSName			*string			// Optional		: FS Name (dummy / loopback) 	
 	FDName			*string			// Optional		: FS Name (bazil) 
 	
@@ -32,6 +34,8 @@ func init() {
 	// Basic config
 	BlobfuseConfig.MountPath 	= flag.String("mount-path", 	".", 			"Path for the mount directory")
 	BlobfuseConfig.TmpPath 		= flag.String("tmp-path", 		".", 			"Path for the temp directory") 
+	BlobfuseConfig.Container	= flag.String("container", 		"tmp", 			"Name of the container") 
+
 	BlobfuseConfig.FSName 		= flag.String("fs", 			"loopback",		"File System to be used") 
 	BlobfuseConfig.FDName 		= flag.String("fd", 			"bazil", 		"Fuse Driver to be used") 
 
@@ -60,6 +64,7 @@ func Usage() {
 func PrintOptionValues() {
 	Logger.LogInfo("Cli option : Mount path : " + *BlobfuseConfig.MountPath)
 	Logger.LogInfo("Cli option : Tmp path : " + *BlobfuseConfig.TmpPath)
+	Logger.LogInfo("Cli option : Container : " + *BlobfuseConfig.Container)
 	Logger.LogInfo("Cli option : FS Name : " + *BlobfuseConfig.FSName)
 	Logger.LogInfo("Cli option : FD Name : " + *BlobfuseConfig.FDName)
 }

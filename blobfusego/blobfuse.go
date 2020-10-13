@@ -42,12 +42,15 @@ func main() {
 	fmt.Println("FD Name : " + fd.GetName())
 	Logger.LogInfo("PIPELINE : " + fd.PrintPipeline())
 
+	fd.InitFuse()
+	fd.Start()
+
 	Logger.LogInfo("Starting to destroy pipeline")
-	fd.SetConsumer(nil)
+	fd.DeInitFuse()
 	
+	fd.SetConsumer(nil)
 	FDFact.ReleaseFuseDriver(fd)
 	FSFact.ReleaseFileSystem(fs)
-
 	Config.StopLogger()
 }
 

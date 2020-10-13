@@ -103,7 +103,7 @@ func (f *loopbackFS) CloseDir(path string) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (f *loopbackFS) ReadDir(path string) int {
+func (f *loopbackFS) ReadDir(path string) []FSIntf.BlobAttr {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -158,7 +158,7 @@ func (f *loopbackFS) ReadLink(path string, link string) int {
 }
 
 // Filesystem level operations
-func (f *loopbackFS) GetAttr(path string, attr *FSIntf.BlobAttr) int {
+func (f *loopbackFS) GetAttr(path string, attr *FSIntf.BlobAttr) error {
 	panic("not implemented") // TODO: Implement
 }
 
