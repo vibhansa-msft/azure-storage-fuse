@@ -2,10 +2,12 @@ package bazilfuse
 
 import (
 	"io"
+	"os"
 	"sync"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
+	Config "github.com/blobfusego/global"
 	Logger "github.com/blobfusego/global/logger"
 	"golang.org/x/net/context"
 )
@@ -20,6 +22,7 @@ type File struct {
 	attr    fuse.Attr
 	path    string
 	created bool
+	valid   bool
 }
 
 func (f *File) getAttr() error {
@@ -52,7 +55,6 @@ func (f *File) Attr(ctx context.Context, o *fuse.Attr) error {
 	err := f.getAttr()
 	if err != nil {
 		Logger.LogErr("FD : Failed to get file attributes %s (%s)", f.path, err)
-		return err
 	}
 
 	*o = f.attr
@@ -64,7 +66,16 @@ func (f *File) Attr(ctx context.Context, o *fuse.Attr) error {
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	Logger.LogDebug("FD : File Open (%s, %d, %d)\n", f.path, int(req.Flags), f.attr.Mode)
 
-	if err := BazilFS.client.OpenFile(f.path); err != nil {
+	if ((req.Flags & fuse.OpenAppend) == fuse.OpenAppend) ||
+		((req.Flags & fuse.OpenCreate) == fuse.OpenCreate) ||
+		((req.Flags & fuse.OpenWriteOnly) == fuse.OpenWriteOnly) {
+		if err := BazilFS.client.CreateFile(f.path, f.attr.Mode); err != nil {
+			Logger.LogErr("FD : Failed to create file %s (%s)", f.path, err)
+			return nil, err
+		}
+	}
+
+	if err := BazilFS.client.OpenFile(f.path, int(req.Flags), f.attr.Mode); err != nil {
 		Logger.LogErr("FD : Failed to open file %s (%s)", f.path, err)
 		return nil, err
 	}
@@ -109,6 +120,14 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	f.Lock()
 	defer f.Unlock()
 
+	if err := f.getAttr(); err != nil {
+		if os.IsNotExist(err) {
+			if err = BazilFS.client.CreateFile(f.path, Config.BlobfuseConfig.DefaultPerm); err != nil {
+				Logger.LogErr("Failed to create new file %s (%s)", f.path, err)
+				return err
+			}
+		}
+	}
 	n, err := BazilFS.client.WriteFile(f.path, req.Offset, int64(len(req.Data)), req.Data)
 	if err != nil {
 		Logger.LogErr("FD : Failed to write to file %s (%s)", f.path, err)
@@ -144,6 +163,20 @@ func (f *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse
 			return err
 		}
 		valid &^= fuse.SetattrMode
+	}
+
+	if valid.MtimeNow() ||
+		valid.AtimeNow() ||
+		valid.Atime() ||
+		valid.Mtime() {
+		if valid.MtimeNow() && valid.AtimeNow() {
+			err := BazilFS.client.CreateFile(f.path, Config.BlobfuseConfig.DefaultPerm)
+			if err != nil {
+				Logger.LogErr("FD : Failed to create file %s (%s)", f.path, err)
+				return err
+			}
+		}
+		valid &^= (fuse.SetattrAtimeNow | fuse.SetattrMtimeNow | fuse.SetattrAtime | fuse.SetattrMtime)
 	}
 
 	valid &^= fuse.SetattrLockOwner | fuse.SetattrHandle

@@ -57,10 +57,14 @@ func (f *bazilFD) InitFuse() {
 	Logger.LogDebug("Init the FD : " + fdName)
 
 	var err error
+	// Refer for more options : https://godoc.org/bazil.org/fuse#MountOption
 	bazilConn, err = fuse.Mount(
 		*Config.BlobfuseConfig.MountPath,
 		fuse.FSName("blobfuse"),
 		fuse.Subtype("azure"),
+		fuse.AllowOther(),
+		fuse.AllowNonEmptyMount(),
+		fuse.MaxReadahead(128*1024*1024),
 	)
 
 	if err != nil {

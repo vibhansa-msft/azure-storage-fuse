@@ -24,6 +24,8 @@ var BazilFS *FS
 var _ fs.FS = (*FS)(nil)
 var _ fs.FSStatfser = (*FS)(nil)
 
+var nodeMap = make(map[string]fs.Node)
+
 // FS : Base structure for this file system
 type FS struct {
 	rootPath string
@@ -116,6 +118,7 @@ func (fsys *FS) Statfs(ctx context.Context,
 func (fsys *FS) newFileNode(path string, attr *FSIntf.BlobAttr) *File {
 	f := &File{
 		attr: fuse.Attr{
+			Valid:  time.Duration(*Config.BlobfuseConfig.AttrTimeOut),
 			Inode:  fsys.nextID(),
 			Atime:  attr.Modtime,
 			Mtime:  attr.Modtime,
@@ -123,17 +126,20 @@ func (fsys *FS) newFileNode(path string, attr *FSIntf.BlobAttr) *File {
 			Crtime: attr.Modtime,
 			Mode:   attr.Mode,
 		},
-		path: path,
+		path:  path,
+		valid: true,
 	}
 	if attr.IsSymlink() {
 		f.attr.Mode |= os.ModeSymlink
 	}
+	nodeMap[path] = f
 	return f
 }
 
 func (fsys *FS) newDirNode(path string, attr *FSIntf.BlobAttr) *Dir {
 	d := &Dir{
 		attr: fuse.Attr{
+			Valid:  time.Duration(*Config.BlobfuseConfig.AttrTimeOut),
 			Inode:  fsys.nextID(),
 			Atime:  attr.Modtime,
 			Mtime:  attr.Modtime,
@@ -141,8 +147,36 @@ func (fsys *FS) newDirNode(path string, attr *FSIntf.BlobAttr) *Dir {
 			Crtime: attr.Modtime,
 			Mode:   os.ModeDir | attr.Mode,
 		},
-		path: path,
+		path:  path,
+		valid: true,
 	}
+	nodeMap[path] = d
 
 	return d
+}
+
+// SetDirAttr : Refresh the directory attributes
+func (d *Dir) SetDirAttr(attr *FSIntf.BlobAttr) {
+	d.attr = fuse.Attr{
+		Valid:  time.Duration(*Config.BlobfuseConfig.AttrTimeOut),
+		Inode:  d.attr.Inode,
+		Atime:  attr.Modtime,
+		Mtime:  attr.Modtime,
+		Ctime:  attr.Modtime,
+		Crtime: attr.Modtime,
+		Mode:   os.ModeDir | attr.Mode,
+	}
+}
+
+// SetFileAttr : Refresh the File attributes
+func (f *File) SetFileAttr(attr *FSIntf.BlobAttr) {
+	f.attr = fuse.Attr{
+		Valid:  time.Duration(*Config.BlobfuseConfig.AttrTimeOut),
+		Inode:  f.attr.Inode,
+		Atime:  attr.Modtime,
+		Mtime:  attr.Modtime,
+		Ctime:  attr.Modtime,
+		Crtime: attr.Modtime,
+		Mode:   attr.Mode,
+	}
 }

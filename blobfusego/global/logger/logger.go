@@ -71,10 +71,10 @@ type LogConfig struct {
 
 // Logger : Global logger structure holding the logging configuration
 var Logger struct {
-	level  		LogLevel
-	logger  	*log.Logger
-	LogFile 	io.WriteCloser
-	ProcPID 	int
+	level   LogLevel
+	logger  *log.Logger
+	LogFile io.WriteCloser
+	ProcPID int
 }
 
 // StartLogger : Initialize the global logger

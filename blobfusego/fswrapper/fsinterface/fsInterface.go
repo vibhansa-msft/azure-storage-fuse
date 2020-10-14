@@ -42,7 +42,7 @@ type FileSystem interface {
 	CreateFile(string, os.FileMode) error
 	DeleteFile(string) error
 
-	OpenFile(string) error
+	OpenFile(string, int, os.FileMode) error
 	CloseFile(string) error
 
 	ReadFile(string, int64, int64) ([]byte, error)

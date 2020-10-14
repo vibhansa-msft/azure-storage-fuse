@@ -31,6 +31,7 @@ type Dir struct {
 	attr   fuse.Attr
 
 	parent *Dir
+	valid  bool
 }
 
 // FileExists : Check file exists in the directory or not
@@ -66,6 +67,11 @@ func (d Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 
 	d.dirlck.Lock()
 	defer d.dirlck.Unlock()
+
+	if !d.valid {
+		return fuse.ENOENT
+	}
+
 	*o = d.attr
 	return nil
 }
@@ -92,6 +98,22 @@ func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
+	if n := nodeMap[path]; n != nil {
+		if attr.IsDir() {
+			d := n.(*Dir)
+			if d.valid {
+				d.SetDirAttr(&attr)
+				return d, nil
+			}
+		} else {
+			f := n.(*File)
+			if f.valid {
+				f.SetFileAttr(&attr)
+				return f, nil
+			}
+		}
+	}
+
 	switch {
 	case attr.IsDir():
 		return BazilFS.newDirNode(path, &attr), nil
@@ -110,6 +132,8 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var out []fuse.Dirent
 
 	blobs, err := BazilFS.client.ReadDir(d.path)
+	Logger.LogErr("FD : ReadDir came back with %d elements", len(blobs))
+
 	if err != nil {
 		Logger.LogErr("FD : Failed to read directory (%s)", err)
 		return nil, err
@@ -294,6 +318,10 @@ func (d *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		Logger.LogErr("FD : Failed to rename %s (%s)", req.OldName, err)
 		return err
 	}
+	od := nodeMap[oldPath].(*Dir)
+	od.valid = false
+
+	Logger.LogDebug("FD : Rename successful for %s to %s", d.path, nd.path)
 
 	return nil
 }
@@ -315,6 +343,8 @@ func (d *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 		Logger.LogErr("FD : Failed to delete %s (%s)", req.Name, err)
 		return err
 	}
+	od := nodeMap[path].(*Dir)
+	od.valid = false
 
 	return nil
 }

@@ -113,7 +113,7 @@ func (f *dummyFS) DeleteFile(_ string) error {
 	panic("not implemented") // TODO: Implement
 }
 
-func (f *dummyFS) OpenFile(_ string) error {
+func (f *dummyFS) OpenFile(_ string, _ int, _ os.FileMode) error {
 	panic("not implemented") // TODO: Implement
 }
 

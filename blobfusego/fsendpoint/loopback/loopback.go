@@ -112,10 +112,12 @@ func (fsys *loopbackFS) CloseDir(_ string) error {
 func (fsys *loopbackFS) ReadDir(name string) (lst []FSIntf.BlobAttr, err error) {
 	path := filepath.Join(fsys.lfsPath, name)
 
+	Logger.LogDebug("FS : Readdir on %s", path)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return lst, err
 	}
+	Logger.LogDebug("FS : Readdir on %s returned back %d objects", path, len(files))
 
 	for _, file := range files {
 		attr := FSIntf.BlobAttr{
@@ -151,11 +153,28 @@ func (fsys *loopbackFS) DeleteFile(name string) error {
 	return os.Remove(path)
 }
 
-func (fsys *loopbackFS) OpenFile(_ string) error {
+func (fsys *loopbackFS) OpenFile(name string, flags int, mod os.FileMode) error {
+	Logger.LogDebug("FS : OpenFile %s", name)
+
+	path := filepath.Join(fsys.lfsPath, name)
+	f, err := os.OpenFile(path, flags, mod)
+	if err != nil {
+		Logger.LogErr("FS : File does not exists %s", path)
+		return err
+	}
+	f.Close()
 	return nil
 }
 
-func (fsys *loopbackFS) CloseFile(_ string) error {
+func (fsys *loopbackFS) CloseFile(name string) error {
+	Logger.LogDebug("FS : CloseFile %s", name)
+
+	path := filepath.Join(fsys.lfsPath, name)
+	_, err := os.Stat(path)
+	if err != nil {
+		Logger.LogErr("FS : File does not exists %s", path)
+		//return err
+	}
 	return nil
 }
 
@@ -186,7 +205,7 @@ func (fsys *loopbackFS) WriteFile(name string, offset int64, len int64, data []b
 		f.Close()
 		return 0, err
 	}
-	if bytes, err = f.WriteAt(data, len); err != nil {
+	if bytes, err = f.WriteAt(data, offset); err != nil {
 		f.Close()
 		return 0, err
 	}
@@ -196,14 +215,15 @@ func (fsys *loopbackFS) WriteFile(name string, offset int64, len int64, data []b
 
 }
 
-func (fsys *loopbackFS) TruncateFile(name string, _ int64) error {
-	path := filepath.Join(fsys.lfsPath, name)
-	f, err := os.OpenFile(path, os.O_TRUNC, 0777)
+func (fsys *loopbackFS) TruncateFile(name string, len int64) error {
+	Logger.LogDebug("FS : TruncateFile %s", name)
 
+	path := filepath.Join(fsys.lfsPath, name)
+	err := os.Truncate(path, len)
 	if err != nil {
+		Logger.LogErr("Failed to truncate %s (%s)", name, err)
 		return err
 	}
-	f.Close()
 	return nil
 }
 
