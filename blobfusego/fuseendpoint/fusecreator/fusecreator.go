@@ -2,6 +2,7 @@ package fusecreator
 
 import (
 	"sync"
+
 	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Logger "github.com/blobfusego/global/logger"
 )
@@ -11,13 +12,13 @@ type FuseDriver interface {
 
 	// InitFuse : Initialize the fuse driver
 	InitFuse()
-	
+
 	// DeInitFuse : DeInitialize the fuse driver
 	DeInitFuse()
 
-	// SetConsumer : Set the next layer that handles the call
-	SetConsumer(cons FSIntf.FileSystem) int
-	
+	// SetClient : Set the next layer that handles the call
+	SetClient(cons FSIntf.FileSystem) int
+
 	// Get the file system name
 	GetName() string
 
@@ -26,43 +27,39 @@ type FuseDriver interface {
 
 	// Start the listener
 	Start() int
-
 }
 
-
-
 // CreateObjFunc : Generic functoin that factory call to create object of FS
-type CreateObjFunc  	func()(FuseDriver)
-// ReleaseObjFunc : Generic function that factory calls to delete object of FS
-type ReleaseObjFunc		func()()
+type CreateObjFunc func() FuseDriver
 
-// FDManager : Method to be used by all implementations to register 
-type FDManager struct{
+// ReleaseObjFunc : Generic function that factory calls to delete object of FS
+type ReleaseObjFunc func()
+
+// FDManager : Method to be used by all implementations to register
+type FDManager struct {
 	CreateObjFunc
 	ReleaseObjFunc
 }
 
 // Method to create object based on fuse driver name
 var (
-	creatorLock 	sync.RWMutex
-    fuseList		= make(map[string]FDManager)
+	creatorLock sync.RWMutex
+	fuseList    = make(map[string]FDManager)
 )
 
-
 // RegisterFuseDriver : Register every fuse driver to system using this
-func RegisterFuseDriver(fdName string, fd FDManager) {	
+func RegisterFuseDriver(fdName string, fd FDManager) {
 	Logger.LogDebug("Registering : " + fdName)
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
 
 	if _, exist := fuseList[fdName]; exist {
-        panic("FD " + fdName + " already registered")
-    }
+		panic("FD " + fdName + " already registered")
+	}
 
-    fuseList[fdName] = fd
+	fuseList[fdName] = fd
 }
-
 
 // GetFuseDriver : Factory method to get the object based on name
 func GetFuseDriver(fdName string) (FuseDriver, bool) {
@@ -70,25 +67,25 @@ func GetFuseDriver(fdName string) (FuseDriver, bool) {
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
-	
+
 	if fd, exist := fuseList[fdName]; exist {
 		return fd.CreateObjFunc(), true
-	} 
-	
+	}
+
 	return nil, false
 }
 
 // ReleaseFuseDriver : Factory method to release the object
-func ReleaseFuseDriver(fd FuseDriver) bool{
+func ReleaseFuseDriver(fd FuseDriver) bool {
 	Logger.LogDebug("Releasing object of : " + fd.GetName())
 
 	creatorLock.Lock()
 	defer creatorLock.Unlock()
-	
+
 	if fd, exist := fuseList[fd.GetName()]; exist {
 		fd.ReleaseObjFunc()
 		return true
-	} 
-	
+	}
+
 	return false
 }

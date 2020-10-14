@@ -17,15 +17,21 @@ import (
 
 var bazilConn *fuse.Conn
 
-//var bazilCfg	*fs.Config
-var bazilFS *FS
+// BazilFS : Pointer to Bazil FS structure
+var BazilFS *FS
 
-// FS is the File System created to serve the calls at user space
+// Compile-time interface checks.
+var _ fs.FS = (*FS)(nil)
+var _ fs.FSStatfser = (*FS)(nil)
+
+// FS : Base structure for this file system
 type FS struct {
-	mountPath  string // Path to the root of this FS
-	tempPath   string // Path to temp directory
-	lastNodeId uint64 // Node id assigned to last new node
-	rootDir    *Dir   // Pointer to Dir structure of the root
+	rootPath string
+	root     *Dir
+	NodeID   uint64
+	size     int64
+
+	client FSIntf.FileSystem
 }
 
 // ErrToFuseErr : Convert OS error to Fuse err codes
@@ -42,14 +48,12 @@ func ErrToFuseErr(err error) error {
 	}
 }
 
-// nextID : Generate the next INode id for the element
 func (fsys *FS) nextID() uint64 {
-	if fsys != nil {
-		Logger.LogDebug("FD : nextID returning : %d", (fsys.lastNodeId + 1))
-		return atomic.AddUint64(&(fsys.lastNodeId), 1)
+	if fsys == nil {
+		return 1
 	}
-	Logger.LogDebug("FD : nextID returning 1")
-	return 1
+
+	return atomic.AddUint64(&fsys.NodeID, 1)
 }
 
 // NewFS : Create the root directory holder for the mounted FS
@@ -57,17 +61,24 @@ func NewFS() *FS {
 	Logger.LogDebug("FD : Creating the root structure for FS")
 
 	fsys := &FS{
-		mountPath:  *Config.BlobfuseConfig.MountPath,
-		tempPath:   *Config.BlobfuseConfig.TmpPath,
-		lastNodeId: 0,
-		rootDir: &Dir{
-			path:    "",
-			nodelst: make(map[string]fs.Node),
-		},
+		rootPath: *Config.BlobfuseConfig.MountPath,
+		root:     nil,
+		NodeID:   0,
+		size:     0,
+		client:   nil,
 	}
 
-	fsys.rootDir.nodeid = fsys.nextID()
+	fsys.root = fsys.newDirNode("/", &FSIntf.BlobAttr{
+		Name:    "/",
+		Size:    4096,
+		Mode:    os.ModeDir | Config.BlobfuseConfig.DefaultPerm,
+		Modtime: time.Now(),
+	})
 
+	if fsys.root.attr.Inode != 1 {
+		Logger.LogDebug("FD : Root shall have Inode of 1")
+		return nil
+	}
 	return fsys
 }
 
@@ -75,8 +86,8 @@ func NewFS() *FS {
 
 // Root : Create the root node for the FS
 func (fsys *FS) Root() (n fs.Node, err error) {
-	Logger.LogDebug("FD : Root called for " + fsys.mountPath)
-	return fsys.rootDir, nil
+	Logger.LogDebug("FD : Root called for " + fsys.rootPath)
+	return fsys.root, nil
 }
 
 // Statfs implements fsys.FSStatfser interface for *FS
@@ -84,10 +95,10 @@ func (fsys *FS) Statfs(ctx context.Context,
 	req *fuse.StatfsRequest,
 	resp *fuse.StatfsResponse) (err error) {
 
-	Logger.LogDebug("FD : Statfs called for " + fsys.mountPath)
+	Logger.LogDebug("FD : Statfs called for " + fsys.rootPath)
 
 	var stat syscall.Statfs_t
-	if err := syscall.Statfs(fsys.tempPath, &stat); err != nil {
+	if err := syscall.Statfs(*Config.BlobfuseConfig.TmpPath, &stat); err != nil {
 		Logger.LogErr("FD : Failed to do stat on root")
 		return ErrToFuseErr(err)
 	}
@@ -95,45 +106,43 @@ func (fsys *FS) Statfs(ctx context.Context,
 	resp.Blocks = stat.Blocks
 	resp.Bfree = stat.Bfree
 	resp.Bavail = stat.Bavail
-	resp.Files = fsys.lastNodeId
+	resp.Files = fsys.NodeID
 	resp.Ffree = stat.Ffree
 	resp.Bsize = uint32(stat.Bsize)
 
 	return nil
 }
 
-// BlobAttrToFuseAttr : Convert Blob Attr to Fuse Attr
-func BlobAttrToFuseAttr(fsAttr *FSIntf.BlobAttr, fuseAttr *fuse.Attr) {
-	fuseAttr.Valid = time.Duration(*Config.BlobfuseConfig.AttrTimeOut)
-	fuseAttr.Atime = fsAttr.Modtime
-	fuseAttr.Mtime = fuseAttr.Atime
-	fuseAttr.Ctime = fuseAttr.Atime
-	fuseAttr.Crtime = fuseAttr.Atime
-
-	if fsAttr.Flags.IsSet(FSIntf.PropFlagIsDir) {
-		fuseAttr.Mode = os.ModeDir | Config.BlobfuseConfig.DefaultPerm
-		fuseAttr.Size = 4096
-	} else {
-		fuseAttr.Mode = Config.BlobfuseConfig.DefaultPerm
-		fuseAttr.Size = fsAttr.Size
+func (fsys *FS) newFileNode(path string, attr *FSIntf.BlobAttr) *File {
+	f := &File{
+		attr: fuse.Attr{
+			Inode:  fsys.nextID(),
+			Atime:  attr.Modtime,
+			Mtime:  attr.Modtime,
+			Ctime:  attr.Modtime,
+			Crtime: attr.Modtime,
+			Mode:   attr.Mode,
+		},
+		path: path,
 	}
-
+	if attr.IsSymlink() {
+		f.attr.Mode |= os.ModeSymlink
+	}
+	return f
 }
 
-// Compile-time interface checks.
-var _ fs.FS = (*FS)(nil)
-var _ fs.FSStatfser = (*FS)(nil)
+func (fsys *FS) newDirNode(path string, attr *FSIntf.BlobAttr) *Dir {
+	d := &Dir{
+		attr: fuse.Attr{
+			Inode:  fsys.nextID(),
+			Atime:  attr.Modtime,
+			Mtime:  attr.Modtime,
+			Ctime:  attr.Modtime,
+			Crtime: attr.Modtime,
+			Mode:   os.ModeDir | attr.Mode,
+		},
+		path: path,
+	}
 
-var _ fs.Node = (*Dir)(nil)
-var _ fs.NodeCreater = (*Dir)(nil)
-var _ fs.NodeMkdirer = (*Dir)(nil)
-var _ fs.NodeRemover = (*Dir)(nil)
-var _ fs.NodeRenamer = (*Dir)(nil)
-var _ fs.NodeStringLookuper = (*Dir)(nil)
-
-var _ fs.HandleReadAller = (*File)(nil)
-var _ fs.HandleWriter = (*File)(nil)
-var _ fs.Node = (*File)(nil)
-var _ fs.NodeOpener = (*File)(nil)
-var _ fs.NodeSetattrer = (*File)(nil)
-var _ fs.HandleFlusher = (*File)(nil)
+	return d
+}

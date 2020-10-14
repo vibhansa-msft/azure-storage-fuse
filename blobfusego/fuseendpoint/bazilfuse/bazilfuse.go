@@ -12,7 +12,7 @@ import (
 
 type bazilFD struct {
 	refCount int
-	consumer FSIntf.FileSystem
+	client   FSIntf.FileSystem
 }
 
 var instance *bazilFD
@@ -31,7 +31,7 @@ func init() {
 func CreateObj() FDFact.FuseDriver {
 	if instance == nil {
 		bazilConn = nil
-		bazilFS = nil
+		BazilFS = nil
 
 		instance = &bazilFD{}
 		instance.refCount = 0
@@ -73,7 +73,7 @@ func (f *bazilFD) InitFuse() {
 	}
 
 	//bazilCfg = &fs.Config{}
-	bazilFS = NewFS()
+	BazilFS = NewFS()
 
 	Logger.LogDebug(fdName + " Initialized successfully")
 }
@@ -82,7 +82,7 @@ func (f *bazilFD) InitFuse() {
 func (f *bazilFD) Start() int {
 	Logger.LogDebug("Start the FD : " + fdName)
 
-	if bazilFS == nil {
+	if BazilFS == nil {
 		Logger.LogErr("FD : Failed to start the fuse driver : fs is null")
 		return -1
 	}
@@ -92,7 +92,7 @@ func (f *bazilFD) Start() int {
 		return -1
 	}
 
-	if err := fs.Serve(bazilConn, bazilFS); err != nil {
+	if err := fs.Serve(bazilConn, BazilFS); err != nil {
 		Logger.LogErr("FD : Failed to start the fuse driver : %v", err)
 		return -1
 	}
@@ -107,9 +107,9 @@ func (f *bazilFD) DeInitFuse() {
 	bazilConn.Close()
 }
 
-// SetConsumer : Set the next layer that handles the call
-func (f *bazilFD) SetConsumer(cons FSIntf.FileSystem) int {
-	instance.consumer = cons
+// SetClient : Set the next layer that handles the call
+func (f *bazilFD) SetClient(cons FSIntf.FileSystem) int {
+	instance.client = cons
 	return 0
 }
 
@@ -120,8 +120,8 @@ func (f *bazilFD) GetName() string {
 
 // PrintPipeline : Print the current pipeline
 func (f *bazilFD) PrintPipeline() string {
-	if instance.consumer != nil {
-		return (fdName + " -> " + instance.consumer.PrintPipeline())
+	if instance.client != nil {
+		return (fdName + " -> " + instance.client.PrintPipeline())
 	}
 	return (fdName + " -> X ")
 }

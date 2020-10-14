@@ -39,7 +39,7 @@ func main() {
 
 	fs.InitFS()
 	fd.InitFuse()
-	fd.SetConsumer(fs)
+	fd.SetClient(fs)
 
 	fmt.Println("FD Name : " + fd.GetName())
 	Logger.LogInfo("PIPELINE : " + fd.PrintPipeline())
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	Logger.LogInfo("Starting to destroy pipeline")
-	fd.SetConsumer(nil)
+	fd.SetClient(nil)
 	fd.DeInitFuse()
 	fs.DeInitFs()
 

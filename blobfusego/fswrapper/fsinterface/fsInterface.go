@@ -14,7 +14,7 @@ type FileSystem interface {
 	DeInitFs() int
 
 	// Set the next component in pipeline for this system
-	SetConsumer(cons FileSystem) int
+	SetClient(cons FileSystem) int
 
 	// Get the file system name
 	GetName() string
@@ -26,42 +26,43 @@ type FileSystem interface {
 	PrintPipeline() string
 
 	// Get the file system stats
-	StatFS() int
+	StatFS() error
 
 	// Directory level operations
-	CreateDir(path string) int
-	DeleteDir(path string)
+	CreateDir(string, os.FileMode) error
+	DeleteDir(string) error
 
-	OpenDir(path string) int
-	CloseDir(path string)
+	OpenDir(string) error
+	CloseDir(string) error
 
-	ReadDir(path string) []BlobAttr
-	RenameDir(path string, name string) int
+	ReadDir(string) ([]BlobAttr, error)
+	RenameDir(string, string) error
 
 	// File level operations
-	CreateFile(path string, mode int) int
-	DeleteFile(path string) int
+	CreateFile(string, os.FileMode) error
+	DeleteFile(string) error
 
-	OpenFile(path string, mode int) int
-	CloseFile(path string)
+	OpenFile(string) error
+	CloseFile(string) error
 
-	ReadFile(path string, offset int, length int) int
-	WriteFile(path string, offset int, length int) int
+	ReadFile(string, int64, int64) ([]byte, error)
+	WriteFile(string, int64, int64, []byte) (int, error)
+	TruncateFile(string, int64) error
 
-	FlushFile(path string) int
-	ReleaseFile(path string) int
-	UnlinkFile(path string) int
+	FlushFile(string) error
+	ReleaseFile(string) error
+	UnlinkFile(string) error
 
 	// Symlink operations
-	CreateLink(path string, dst string) int
-	ReadLink(path string, link string) int
+	CreateLink(string, string) error
+	ReadLink(string) (string, error)
 
 	// Filesystem level operations
-	GetAttr(path string, attr *BlobAttr) error
-	SetAttr(path string) int
+	GetAttr(string) (BlobAttr, error)
+	SetAttr(string, BlobAttr) error
 
-	Chmod(path string, mod int) int
-	Chown(path string, owner string) int
+	Chmod(string, os.FileMode) error
+	Chown(string, string) error
 }
 
 //////// Properties related interface and metadata
@@ -96,4 +97,14 @@ type BlobAttr struct {
 	Modtime time.Time   // last modified time
 	Flags   BitMap      // Flags of the object
 	NodeID  uint64      // Node Id of this element
+}
+
+// IsDir : Test blob is a directory or not
+func (attr *BlobAttr) IsDir() bool {
+	return attr.Flags.IsSet(PropFlagIsDir)
+}
+
+// IsSymlink : Test blob is a symlink or not
+func (attr *BlobAttr) IsSymlink() bool {
+	return attr.Flags.IsSet(PropFlagSymlink)
 }
