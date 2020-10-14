@@ -72,7 +72,6 @@ func (f *bazilFD) InitFuse() {
 		panic("Failed to mount")
 	}
 
-	//bazilCfg = &fs.Config{}
 	BazilFS = NewFS()
 
 	Logger.LogDebug(fdName + " Initialized successfully")
@@ -110,6 +109,7 @@ func (f *bazilFD) DeInitFuse() {
 // SetClient : Set the next layer that handles the call
 func (f *bazilFD) SetClient(cons FSIntf.FileSystem) int {
 	instance.client = cons
+	BazilFS.client = cons
 	return 0
 }
 

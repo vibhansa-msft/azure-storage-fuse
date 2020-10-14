@@ -58,7 +58,12 @@ var ignoreList = map[string]struct{}{
 func (d Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 	Logger.LogDebug("FD : Dir Attr called for %s", d.path)
 
-	//o.Inode = d.nodeid
+	if d.path == "/" {
+		// Attr for root called
+		*o = BazilFS.root.attr
+		return nil
+	}
+
 	d.dirlck.Lock()
 	defer d.dirlck.Unlock()
 	*o = d.attr
@@ -68,7 +73,7 @@ func (d Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 // Lookup : Check whether given object exists in the directory structure or not
 // Lookup ...
 func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	Logger.LogDebug("FD : Dir Attr called for %s", d.path)
+	Logger.LogDebug("FD : Dir Lookup called for %s", d.path)
 
 	if _, ignore := ignoreList[name]; ignore {
 		Logger.LogDebug("FD : Ignoring %s", d.path)
