@@ -77,7 +77,6 @@ func (d Dir) Attr(ctx context.Context, o *fuse.Attr) error {
 }
 
 // Lookup : Check whether given object exists in the directory structure or not
-// Lookup ...
 func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	Logger.LogDebug("FD : Dir Lookup called for %s", d.path)
 

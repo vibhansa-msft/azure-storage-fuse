@@ -179,4 +179,7 @@ func (f *File) SetFileAttr(attr *FSIntf.BlobAttr) {
 		Crtime: attr.Modtime,
 		Mode:   attr.Mode,
 	}
+	if attr.IsSymlink() {
+		f.attr.Mode |= os.ModeSymlink
+	}
 }
