@@ -52,7 +52,7 @@ func ReleaseObj() {
 ////////////////////////////////////////
 // Init/DeInit the filesystem
 func (fsys *loopbackFS) InitFS() int {
-	Logger.LogDebug("FS : LoopbackFS InitFS")
+	Logger.LogDebug("FS : %s InitFS", fsName)
 	fsys.lfsPath = *Config.BlobfuseConfig.TmpPath
 	return 0
 }
@@ -63,8 +63,7 @@ func (fsys *loopbackFS) DeInitFs() int {
 
 // Set the next component in pipeline for this system
 func (fsys *loopbackFS) SetClient(cons FSIntf.FileSystem) int {
-	fsys.consumer = cons
-	return 0
+	panic("FS : loopback does not support this")
 }
 
 // Get the file system name
