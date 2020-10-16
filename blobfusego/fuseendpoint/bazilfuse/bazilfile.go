@@ -13,8 +13,12 @@ import (
 	"golang.org/x/net/context"
 )
 
+var _ fs.HandleReadAller = (*File)(nil)
+var _ fs.HandleWriter = (*File)(nil)
 var _ fs.Node = (*File)(nil)
 var _ fs.NodeOpener = (*File)(nil)
+var _ fs.NodeSetattrer = (*File)(nil)
+var _ fs.HandleFlusher = (*File)(nil)
 var _ fs.NodeAccesser = (*File)(nil)
 
 // File : Structure representing a file in system
@@ -52,14 +56,14 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 func (f *File) Attr(ctx context.Context, o *fuse.Attr) error {
 	Logger.LogDebug("FD : File Attr %s", f.path)
 
-	f.RLock()
+	//f.RLock()
 	err := f.getAttr()
 	if err != nil {
 		Logger.LogErr("FD : Failed to get file attributes %s (%s)", f.path, err)
 	}
 
 	*o = f.attr
-	f.RUnlock()
+	//f.RUnlock()
 	return nil
 }
 
@@ -99,8 +103,8 @@ func (f *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	Logger.LogDebug("FD : Read %s", f.path)
 
-	f.RLock()
-	defer f.RUnlock()
+	//f.RLock()
+	//defer f.RUnlock()
 
 	resp.Data = resp.Data[:req.Size]
 	n, err := BazilFS.client.ReadFile(f.path, req.Offset, int64(req.Size))
@@ -112,6 +116,18 @@ func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 
 	resp.Data = n
 	return nil
+}
+
+// ReadAll : Read entire data in one shot
+func (f *File) ReadAll(ctx context.Context) ([]byte, error) {
+	Logger.LogDebug("FD : ReadAll %s", f.path)
+	n, err := BazilFS.client.ReadFile(f.path, 0, 0)
+
+	if err != nil && err != io.EOF {
+		Logger.LogErr("FD : Failed to read the file %s (%s)", f.path, err)
+		return n, err
+	}
+	return n, nil
 }
 
 // Write : Write data to file
@@ -136,6 +152,12 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	}
 	resp.Size = n
 	return nil
+}
+
+// Flush  : flush the file
+func (f *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
+	Logger.LogDebug("FD : Flush %s", f.path)
+	return BazilFS.client.FlushFile(f.path)
 }
 
 var _ fs.NodeSetattrer = (*File)(nil)
