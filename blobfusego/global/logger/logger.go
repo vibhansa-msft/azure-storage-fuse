@@ -46,7 +46,7 @@ func getLogLevel(lvl string) LogLevel {
 		return LogLvlWarn
 	case "LOG_WARNING":
 		return LogLvlWarn
-	case "LOG_ERROR":
+	case "LOG_ERR":
 		return LogLvlErr
 	case "LOG_CRIT":
 		return LogLvlCrit
