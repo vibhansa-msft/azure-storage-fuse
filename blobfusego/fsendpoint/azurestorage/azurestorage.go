@@ -274,12 +274,10 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 		BlockSize:   0,
 	}
 
-	Logger.LogErr("Going for file download %s", name)
 	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, len, data, o)
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
-	Logger.LogErr("Download complete %s, %d bytes read", name, len)
 	return data, err
 }
 
