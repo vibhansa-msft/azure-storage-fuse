@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"syscall"
+	"io/ioutil"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	FSFact "github.com/blobfusego/fswrapper/fscreator"
@@ -192,29 +193,38 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 		blobURL := az.containerURL.NewBlobURL(name)
 
 		Logger.LogErr("Going for file download %s", name)
-		err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
-		//resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
-		if err != nil {
-			Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
-			return err
-		}
+		if false {
+			err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
+			if err != nil {
+				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
+				return err
+			}
+			size, _ := f.Seek(0, io.SeekCurrent)
+			Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
+		} else {
+			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+			if err != nil {
+				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
+				return err
+			}
+			Logger.LogErr("Download complete %s", name)
 
-		size, _ := f.Seek(0, io.SeekCurrent)
-		Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
-
-		/*
 			data, err := ioutil.ReadAll(resp.Response().Body)
 			if err != nil {
 				Logger.LogErr("Failed to read data from resp")
 				return err
 			}
+			Logger.LogErr("All data read %s", name)
 
 			_, err = f.Write(data)
 			if err != nil {
 				Logger.LogErr("Failed to save data to file")
 				return err
 			}
-			resp.Body(azblob.RetryReaderOptions{}).Close()*/
+			size, _ := f.Seek(0, io.SeekCurrent)
+			Logger.LogErr("File Written %s with %d bytes", name, size)
+			resp.Body(azblob.RetryReaderOptions{}).Close()
+		}
 		f.Close()
 	}
 
