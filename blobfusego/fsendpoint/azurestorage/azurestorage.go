@@ -180,8 +180,7 @@ func (az *azurestorageFS) DeleteFile(name string) error {
 func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) error {
 	Logger.LogDebug("FS : OpenFile %s", name)
 
-	//if flag != syscall.O_RDONLY
-	{
+	if true {
 		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 			os.O_RDWR|os.O_APPEND|os.O_CREATE,
 			Config.BlobfuseConfig.DefaultPerm)
@@ -193,7 +192,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 		blobURL := az.containerURL.NewBlobURL(name)
 
 		Logger.LogErr("Going for file download %s", name)
-		if false {
+		if true {
 			err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
 			if err != nil {
 				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
@@ -268,12 +267,10 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 		BlockSize:   0,
 	}
 
-	Logger.LogErr("Going for file download %s", name)
 	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, len, data, o)
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
-	Logger.LogErr("Download complete %s, %d bytes read", name, len)
 	return data, err
 }
 
