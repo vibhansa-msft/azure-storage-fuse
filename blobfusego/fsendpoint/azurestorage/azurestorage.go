@@ -3,6 +3,7 @@ package azurestorage
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"os"
 	"syscall"
 
@@ -176,24 +177,41 @@ func (az *azurestorageFS) DeleteFile(name string) error {
 	return nil
 }
 
-func (az *azurestorageFS) OpenFile(name string, _ int, _ os.FileMode) error {
+func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) error {
 	Logger.LogDebug("FS : OpenFile %s", name)
 
-	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-		os.O_RDWR|os.O_APPEND|os.O_CREATE,
-		Config.BlobfuseConfig.DefaultPerm)
-	if err != nil {
-		Logger.LogErr("Failed to open local file")
-		return err
-	}
+	//if flag != syscall.O_RDONLY
+	{
+		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+			os.O_RDWR|os.O_APPEND|os.O_CREATE,
+			Config.BlobfuseConfig.DefaultPerm)
+		if err != nil {
+			Logger.LogErr("Failed to open local file")
+			return err
+		}
 
-	blobURL := az.containerURL.NewBlobURL(name)
-	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
-	if err != nil {
-		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
-		return err
+		blobURL := az.containerURL.NewBlobURL(name)
+		//err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
+		resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+		if err != nil {
+			Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
+			return err
+		}
+
+		data, err := ioutil.ReadAll(resp.Response().Body)
+		if err != nil {
+			Logger.LogErr("Failed to read data from resp")
+			return err
+		}
+
+		_, err = f.Write(data)
+		if err != nil {
+			Logger.LogErr("Failed to save data to file")
+			return err
+		}
+		resp.Body(azblob.RetryReaderOptions{}).Close()
+		f.Close()
 	}
-	f.Close()
 
 	return nil
 }
@@ -211,7 +229,7 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 }
 
 func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data []byte, err error) {
-	Logger.LogDebug("FS : ReadFile %s", name)
+	Logger.LogDebug("FS : ReadFile %s (%llu : %llu)", name, offset, len)
 
 	data = make([]byte, len)
 
@@ -244,7 +262,7 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 }
 
 func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data []byte) (bytes int, err error) {
-	Logger.LogDebug("FS : WriteFile %s", name)
+	Logger.LogDebug("FS : WriteFile %s (%llu : %llu)", name, offset, len)
 
 	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 		os.O_RDWR|os.O_CREATE,
