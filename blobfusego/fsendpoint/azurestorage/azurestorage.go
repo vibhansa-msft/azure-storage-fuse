@@ -3,7 +3,6 @@ package azurestorage
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"syscall"
 
@@ -191,25 +190,25 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 		}
 
 		blobURL := az.containerURL.NewBlobURL(name)
-		//err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
-		resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+		err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
+		//resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
 		if err != nil {
 			Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 			return err
 		}
+		/*
+			data, err := ioutil.ReadAll(resp.Response().Body)
+			if err != nil {
+				Logger.LogErr("Failed to read data from resp")
+				return err
+			}
 
-		data, err := ioutil.ReadAll(resp.Response().Body)
-		if err != nil {
-			Logger.LogErr("Failed to read data from resp")
-			return err
-		}
-
-		_, err = f.Write(data)
-		if err != nil {
-			Logger.LogErr("Failed to save data to file")
-			return err
-		}
-		resp.Body(azblob.RetryReaderOptions{}).Close()
+			_, err = f.Write(data)
+			if err != nil {
+				Logger.LogErr("Failed to save data to file")
+				return err
+			}
+			resp.Body(azblob.RetryReaderOptions{}).Close()*/
 		f.Close()
 	}
 
