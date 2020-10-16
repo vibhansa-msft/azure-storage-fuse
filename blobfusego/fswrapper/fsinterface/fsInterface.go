@@ -48,6 +48,9 @@ type FileSystem interface {
 	WriteFile(string, int64, int64, []byte) (int, error)
 	TruncateFile(string, int64) error
 
+	CopyToFile(string, *os.File) error
+	CopyFromFile(string, *os.File) error
+
 	FlushFile(string) error
 	ReleaseFile(string) error
 	UnlinkFile(string) error

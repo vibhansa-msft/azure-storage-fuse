@@ -2,6 +2,7 @@ package azurestorage
 
 import (
 	"fmt"
+	"syscall"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
@@ -9,8 +10,7 @@ import (
 	Logger "github.com/blobfusego/global/logger"
 )
 
-func setFlags(attr *FSIntf.BlobAttr, blob *azblob.BlobItem) {
-	metadata := blob.Metadata
+func setFlags(attr *FSIntf.BlobAttr, metadata azblob.Metadata) {
 	for k, v := range metadata {
 		fmt.Print(k + "=" + v + "\n")
 		if k == "hdi_isfolder" &&
@@ -30,10 +30,14 @@ func (az *azurestorageFS) getBlobList(name string) (blobLst []FSIntf.BlobAttr, e
 	var maxResults int32 = 5000
 	var listBlob *azblob.ListBlobsHierarchySegmentResponse
 
+	if name != "" {
+		name += "/"
+	}
+
 	for marker := (azblob.Marker{}); marker.NotDone(); {
 		listBlob, err = az.containerURL.ListBlobsHierarchySegment(az.ctx, marker, "/",
 			azblob.ListBlobsSegmentOptions{MaxResults: maxResults,
-				Prefix: name[1:],
+				Prefix: name,
 				Details: azblob.BlobListingDetails{
 					Metadata:  true,
 					Deleted:   false,
@@ -53,11 +57,34 @@ func (az *azurestorageFS) getBlobList(name string) (blobLst []FSIntf.BlobAttr, e
 				Modtime: blobInfo.Properties.LastModified,
 				Flags:   0,
 			}
-			setFlags(&attr, &blobInfo)
+			setFlags(&attr, blobInfo.Metadata)
 			blobLst = append(blobLst, attr)
 			Logger.LogDebug("Added %s to the dir listing", blobInfo.Name)
 		}
 	}
 
 	return blobLst, err
+}
+
+func (az *azurestorageFS) getBlobAttr(name string) (attr FSIntf.BlobAttr, err error) {
+	blobURL := az.containerURL.NewBlockBlobURL(name)
+	prop, err := blobURL.GetProperties(az.ctx, azblob.BlobAccessConditions{})
+
+	if err != nil {
+		e := StoreErrToErr(err)
+		if e == ErrFileNotFound {
+			Logger.LogErr("Failed to get properties of object %s (%s)", name, ErrStr[ErrFileNotFound])
+			return attr, syscall.ENOENT
+		}
+	}
+
+	attr = FSIntf.BlobAttr{
+		Name:    name,
+		Size:    uint64(prop.ContentLength()),
+		Mode:    Config.BlobfuseConfig.DefaultPerm, // TODO : VB : To be replcaed by blob mode later
+		Modtime: prop.LastModified(),
+		Flags:   0,
+	}
+	setFlags(&attr, prop.NewMetadata())
+	return attr, err
 }

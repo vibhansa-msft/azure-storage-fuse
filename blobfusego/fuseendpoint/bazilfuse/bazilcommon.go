@@ -70,7 +70,7 @@ func NewFS() *FS {
 		client:   nil,
 	}
 
-	fsys.root = fsys.newDirNode("/", &FSIntf.BlobAttr{
+	fsys.root = fsys.newDirNode("", &FSIntf.BlobAttr{
 		Name:    "/",
 		Size:    4096,
 		Mode:    os.ModeDir | Config.BlobfuseConfig.DefaultPerm,

@@ -29,8 +29,6 @@ type Dir struct {
 	dirlck sync.RWMutex
 	path   string
 	attr   fuse.Attr
-
-	parent *Dir
 	valid  bool
 }
 
@@ -131,7 +129,7 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var out []fuse.Dirent
 
 	blobs, err := BazilFS.client.ReadDir(d.path)
-	Logger.LogErr("FD : ReadDir came back with %d elements", len(blobs))
+	Logger.LogDebug("FD : ReadDir came back with %d elements", len(blobs))
 
 	if err != nil {
 		Logger.LogErr("FD : Failed to read directory (%s)", err)

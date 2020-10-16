@@ -280,3 +280,11 @@ func (fsys *loopbackFS) Chmod(_ string, _ os.FileMode) error {
 func (fsys *loopbackFS) Chown(_ string, _ string) error {
 	return nil
 }
+
+func (fsys *loopbackFS) CopyToFile(string, *os.File) error {
+	return nil
+}
+
+func (fsys *loopbackFS) CopyFromFile(string, *os.File) error {
+	return nil
+}

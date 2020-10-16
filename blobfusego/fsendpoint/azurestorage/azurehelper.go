@@ -93,7 +93,7 @@ var azPiplineOptions = azblob.PipelineOptions{
 	Retry: azblob.RetryOptions{
 		Policy:        azblob.RetryPolicyExponential, // Use exponential backoff as opposed to linear
 		MaxTries:      3,                             // Try at most 3 times to perform the operation (set to 1 to disable retries)
-		TryTimeout:    time.Second * 3,               // Maximum time allowed for any single try
+		TryTimeout:    time.Second * 3600,            // Maximum time allowed for any single try
 		RetryDelay:    time.Second * 1,               // Backoff amount for each retry (exponential or linear)
 		MaxRetryDelay: time.Second * 3,               // Max delay between retries
 	},

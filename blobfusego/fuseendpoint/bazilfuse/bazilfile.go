@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"syscall"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
@@ -31,7 +32,7 @@ func (f *File) getAttr() error {
 	attr, err := BazilFS.client.GetAttr(f.path)
 	if err != nil {
 		Logger.LogErr("FD : Failed to get attribute %s (%s)", f.path, err)
-		return err
+		return fuse.ENOENT
 	}
 
 	f.attr.Size = attr.Size
@@ -121,7 +122,7 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	defer f.Unlock()
 
 	if err := f.getAttr(); err != nil {
-		if os.IsNotExist(err) {
+		if os.IsNotExist(err) || err == syscall.ENOENT {
 			if err = BazilFS.client.CreateFile(f.path, Config.BlobfuseConfig.DefaultPerm); err != nil {
 				Logger.LogErr("Failed to create new file %s (%s)", f.path, err)
 				return err
