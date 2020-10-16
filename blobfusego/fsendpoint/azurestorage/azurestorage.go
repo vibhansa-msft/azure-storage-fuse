@@ -199,8 +199,8 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 				return err
 			}
-			size, _ := f.Seek(0, io.SeekCurrent)
-			Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
+			size, _ := f.Seek(0, io.SeekEnd)
+			Logger.LogErr("Download complete of %s, %d bytes read", name, size)
 		} else {
 			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
 			if err != nil {
@@ -244,7 +244,7 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 }
 
 func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data []byte, err error) {
-	Logger.LogDebug("FS : ReadFile %s (%llu : %llu)", name, offset, len)
+	Logger.LogDebug("FS : ReadFile %s (%d : %d)", name, offset, len)
 
 	data = make([]byte, len)
 
@@ -273,12 +273,12 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
-	Logger.LogErr("Download complete %s, %llu bytes read", name, len)
+	Logger.LogErr("Download complete %s, %d bytes read", name, len)
 	return data, err
 }
 
 func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data []byte) (bytes int, err error) {
-	Logger.LogDebug("FS : WriteFile %s (%llu : %llu)", name, offset, len)
+	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, len)
 
 	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 		os.O_RDWR|os.O_CREATE,
@@ -356,7 +356,7 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 		return err
 	}
 	size, _ := f.Seek(0, io.SeekCurrent)
-	Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
+	Logger.LogErr("Download complete of %s, %d bytes read", name, size)
 
 	return nil
 }
@@ -373,7 +373,7 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 		return err
 	}
 	size, _ := f.Seek(0, io.SeekCurrent)
-	Logger.LogErr("Upload complete of %s, %llu bytes read", name, size)
+	Logger.LogErr("Upload complete of %s, %d bytes read", name, size)
 
 	return nil
 }
