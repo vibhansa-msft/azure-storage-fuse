@@ -190,12 +190,18 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 		}
 
 		blobURL := az.containerURL.NewBlobURL(name)
+
+		Logger.LogErr("Going for file download %s", name)
 		err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
 		//resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
 		if err != nil {
 			Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 			return err
 		}
+
+		size, _ := f.Seek(0, io.SeekCurrent)
+		Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
+
 		/*
 			data, err := ioutil.ReadAll(resp.Response().Body)
 			if err != nil {
@@ -252,11 +258,12 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 		BlockSize:   0,
 	}
 
+	Logger.LogErr("Going for file download %s", name)
 	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, len, data, o)
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
-
+	Logger.LogErr("Download complete %s, %llu bytes read", name, len)
 	return data, err
 }
 
@@ -331,11 +338,15 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	Logger.LogDebug("FS : CopyToFile %s", name)
 
 	blobURL := az.containerURL.NewBlobURL(name)
+
+	Logger.LogErr("Going for file download %s", name)
 	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
 	}
+	size, _ := f.Seek(0, io.SeekCurrent)
+	Logger.LogErr("Download complete of %s, %llu bytes read", name, size)
 
 	return nil
 }
@@ -344,11 +355,15 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 	Logger.LogDebug("FS : CopyFromFile %s", name)
 
 	blobURL := az.containerURL.NewBlockBlobURL(name)
+
+	Logger.LogErr("Going for upload of %s", name)
 	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, azblob.UploadToBlockBlobOptions{})
 	if err != nil {
 		Logger.LogErr("Upload from file failed for %s (%s)", name, err.Error())
 		return err
 	}
+	size, _ := f.Seek(0, io.SeekCurrent)
+	Logger.LogErr("Upload complete of %s, %llu bytes read", name, size)
 
 	return nil
 }
