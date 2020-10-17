@@ -255,7 +255,7 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 			// We need to read till the end of the file
 			_, _ = f.Seek(offset, io.SeekStart)
 			endpos, _ := f.Seek(0, io.SeekEnd)
-			len = (endpos - offset) + 1
+			len = (endpos - offset)
 			data = make([]byte, len)
 		}
 		n, err := f.ReadAt(data, offset)
