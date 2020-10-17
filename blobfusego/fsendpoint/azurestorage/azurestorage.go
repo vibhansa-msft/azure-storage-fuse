@@ -302,14 +302,19 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data [
 	return 0, err
 }
 
-func (az *azurestorageFS) FlushFile(name string) error {
+func (az *azurestorageFS) FlushFile(name string) (err error) {
 	Logger.LogDebug("FS : FlushFile %s", name)
 
-	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-		os.O_RDONLY,
-		Config.BlobfuseConfig.DefaultPerm)
-	err = az.CopyFromFile(name, f)
-	f.Close()
+	if writeFiles[name] == true {
+	    f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+		    os.O_RDONLY,
+		    Config.BlobfuseConfig.DefaultPerm)
+	    err = az.CopyFromFile(name, f)
+        if err != nil {
+            Logger.LogErr("Failed to upload the file %s (%s)", name, err.Error())
+        }
+	    f.Close()
+    }
 
 	return err
 }

@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-var _ fs.HandleReadAller = (*File)(nil)
+//var _ fs.HandleReadAller = (*File)(nil)
 var _ fs.HandleWriter = (*File)(nil)
 var _ fs.Node = (*File)(nil)
 var _ fs.NodeOpener = (*File)(nil)
@@ -118,6 +118,7 @@ func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	return nil
 }
 
+/*
 // ReadAll : Read entire data in one shot
 func (f *File) ReadAll(ctx context.Context) ([]byte, error) {
 	Logger.LogDebug("FD : ReadAll %s", f.path)
@@ -129,6 +130,7 @@ func (f *File) ReadAll(ctx context.Context) ([]byte, error) {
 	}
 	return n, nil
 }
+*/
 
 // Write : Write data to file
 func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
