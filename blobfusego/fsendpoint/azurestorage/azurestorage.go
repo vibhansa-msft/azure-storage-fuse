@@ -28,6 +28,7 @@ type azurestorageFS struct {
 var instance *azurestorageFS
 var fsName = string("azurestorage")
 var writeFiles = make(map[string]bool)
+var openFiles = make(map[string]*os.File)
 
 var regObj = FSFact.FSManager{CreateObjFunc: CreateObj, ReleaseObjFunc: ReleaseObj}
 
@@ -182,6 +183,8 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	Logger.LogDebug("FS : OpenFile %s", name)
 	Stats.OpenRequest(fsName)
 
+	openFiles[name] = nil
+
 	if true {
 		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 			os.O_RDWR|os.O_APPEND|os.O_CREATE,
@@ -227,7 +230,6 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 			Logger.LogErr("File Written %s with %d bytes", name, size)
 			resp.Body(azblob.RetryReaderOptions{}).Close()
 		}
-		f.Close()
 	}
 
 	return nil
@@ -241,6 +243,13 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 		err = az.FlushFile(name)
 		writeFiles[name] = false
 	}
+
+	if openFiles[name] != nil {
+		f := openFiles[name]
+		f.Close()
+		openFiles[name] = nil
+	}
+
 	os.Remove(*Config.BlobfuseConfig.TmpPath + "/" + name)
 	return err
 }
@@ -249,10 +258,19 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 	Logger.LogDebug("FS : ReadFile %s (%d : %d)", name, offset, len)
 
 	data = make([]byte, len)
+	var f *os.File
 
-	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-		os.O_RDONLY,
-		Config.BlobfuseConfig.DefaultPerm)
+	if openFiles[name] == nil {
+
+		f, err = os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+			os.O_RDONLY,
+			Config.BlobfuseConfig.DefaultPerm)
+		openFiles[name] = f
+
+	} else {
+		f = openFiles[name]
+	}
+
 	if err == nil {
 		if len == 0 {
 			// We need to read till the end of the file
@@ -266,7 +284,6 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 			Logger.LogErr("Failed to read specified bytes form file")
 			return data, err
 		}
-		f.Close()
 		data = data[:n]
 		return data, nil
 	}
@@ -287,9 +304,15 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data []byte) (bytes int, err error) {
 	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, len)
 
-	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-		os.O_RDWR|os.O_CREATE,
-		Config.BlobfuseConfig.DefaultPerm)
+	var f *os.File
+	if openFiles[name] == nil {
+		f, err = os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+			os.O_RDWR|os.O_CREATE,
+			Config.BlobfuseConfig.DefaultPerm)
+		openFiles[name] = f
+	} else {
+		f = openFiles[name]
+	}
 
 	if err == nil {
 		n, err := f.WriteAt(data, offset)
@@ -297,7 +320,6 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data [
 			Logger.LogErr("Failed to read specified bytes form file")
 			return 0, err
 		}
-		f.Close()
 		writeFiles[name] = true
 		return n, nil
 	}
