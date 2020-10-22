@@ -44,8 +44,8 @@ func ReadRequestFail(name string) {
 	currStats[name].numReadRequestFail++
 }
 
-func ReadBytes(name string) {
-	currStats[name].numReadBytes++
+func ReadBytes(name string, bytes uint64) {
+	currStats[name].numReadBytes += bytes
 }
 
 func WriteRequest(name string) {
@@ -56,8 +56,8 @@ func WriteRequestFail(name string) {
 	currStats[name].numWriteRequestFail++
 }
 
-func WriteBytes(name string) {
-	currStats[name].numWriteBytes++
+func WriteBytes(name string, bytes uint64) {
+	currStats[name].numWriteBytes += bytes
 }
 
 func OpenRequest(name string) {

@@ -101,7 +101,7 @@ func (f *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 
 // Read : Read the file
 func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	Logger.LogDebug("FD : Read %s", f.path)
+	//Logger.LogDebug("FD : Read %s", f.path)
 
 	//f.RLock()
 	//defer f.RUnlock()

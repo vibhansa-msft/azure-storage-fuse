@@ -254,10 +254,10 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 	return err
 }
 
-func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data []byte, err error) {
-	Logger.LogDebug("FS : ReadFile %s (%d : %d)", name, offset, len)
-
-	data = make([]byte, len)
+func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data []byte, err error) {
+	//Logger.LogDebug("FS : ReadFile %s (%d : %d)", name, offset, size)
+	Stats.ReadRequest(fsName)
+	data = make([]byte, size)
 	var f *os.File
 
 	if openFiles[name] == nil {
@@ -272,19 +272,21 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 	}
 
 	if err == nil {
-		if len == 0 {
+		if size == 0 {
 			// We need to read till the end of the file
 			_, _ = f.Seek(offset, io.SeekStart)
 			endpos, _ := f.Seek(0, io.SeekEnd)
-			len = (endpos - offset)
-			data = make([]byte, len)
+			size = (endpos - offset)
+			data = make([]byte, size)
 		}
 		n, err := f.ReadAt(data, offset)
 		if err != nil && err != io.EOF {
 			Logger.LogErr("Failed to read specified bytes form file")
+			Stats.ReadRequestFail(fsName)
 			return data, err
 		}
 		data = data[:n]
+		Stats.ReadBytes(fsName, uint64(n))
 		return data, nil
 	}
 
@@ -294,15 +296,17 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, len int64) (data [
 		BlockSize:   0,
 	}
 
-	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, len, data, o)
+	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, size, data, o)
 	if err != nil {
+		Stats.ReadRequestFail(fsName)
 		Logger.LogErr("Failed to download the file")
 	}
+	Stats.ReadBytes(fsName, uint64(len(data)))
 	return data, err
 }
 
-func (az *azurestorageFS) WriteFile(name string, offset int64, len int64, data []byte) (bytes int, err error) {
-	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, len)
+func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data []byte) (bytes int, err error) {
+	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, size)
 
 	var f *os.File
 	if openFiles[name] == nil {
@@ -344,18 +348,18 @@ func (az *azurestorageFS) FlushFile(name string) (err error) {
 	return err
 }
 
-func (az *azurestorageFS) TruncateFile(name string, len int64) error {
+func (az *azurestorageFS) TruncateFile(name string, size int64) error {
 	Logger.LogDebug("FS : TruncateFile %s", name)
 
-	// Read len bytes from file
+	// Read size bytes from file
 	blobURL := az.containerURL.NewBlobURL(name)
 	i := azblob.DownloadFromBlobOptions{
 		Parallelism: 10,
 		BlockSize:   0,
 	}
 
-	data := make([]byte, len)
-	err := azblob.DownloadBlobToBuffer(az.ctx, blobURL, 0, len, data, i)
+	data := make([]byte, size)
+	err := azblob.DownloadBlobToBuffer(az.ctx, blobURL, 0, size, data, i)
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
