@@ -12,7 +12,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mdempsky/gocode v0.0.0-20200405233807-4acdcbdea79d // indirect
 	github.com/peterh/liner v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.starlark.net v0.0.0-20201006213952-227f4aabceb5 // indirect

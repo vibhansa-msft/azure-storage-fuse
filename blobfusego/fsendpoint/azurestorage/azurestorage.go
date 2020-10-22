@@ -12,6 +12,7 @@ import (
 	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
 	Config "github.com/blobfusego/global"
 	Logger "github.com/blobfusego/global/logger"
+	Stats "github.com/blobfusego/global/perfmonitor"
 )
 
 // Example for azblob usage : https://godoc.org/github.com/Azure/azure-storage-blob-go/azblob#pkg-examples
@@ -179,6 +180,7 @@ func (az *azurestorageFS) DeleteFile(name string) error {
 
 func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) error {
 	Logger.LogDebug("FS : OpenFile %s", name)
+	Stats.OpenRequest(fsName)
 
 	if true {
 		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
@@ -186,6 +188,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 			Config.BlobfuseConfig.DefaultPerm)
 		if err != nil {
 			Logger.LogErr("Failed to open local file")
+			Stats.OpenRequestFail(fsName)
 			return err
 		}
 
@@ -306,15 +309,15 @@ func (az *azurestorageFS) FlushFile(name string) (err error) {
 	Logger.LogDebug("FS : FlushFile %s", name)
 
 	if writeFiles[name] == true {
-	    f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-		    os.O_RDONLY,
-		    Config.BlobfuseConfig.DefaultPerm)
-	    err = az.CopyFromFile(name, f)
-        if err != nil {
-            Logger.LogErr("Failed to upload the file %s (%s)", name, err.Error())
-        }
-	    f.Close()
-    }
+		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+			os.O_RDONLY,
+			Config.BlobfuseConfig.DefaultPerm)
+		err = az.CopyFromFile(name, f)
+		if err != nil {
+			Logger.LogErr("Failed to upload the file %s (%s)", name, err.Error())
+		}
+		f.Close()
+	}
 
 	return err
 }

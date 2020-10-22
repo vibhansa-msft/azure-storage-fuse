@@ -76,7 +76,7 @@ func (f *bazilFD) InitFuse() {
 		panic("Failed to mount")
 	}
 
-	BazilFS = NewFS()
+	BazilFS = NewBazilFS()
 
 	Logger.LogDebug(fdName + " Initialized successfully")
 }

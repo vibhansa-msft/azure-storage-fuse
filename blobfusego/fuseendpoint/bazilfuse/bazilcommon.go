@@ -58,8 +58,8 @@ func (fsys *FS) nextID() uint64 {
 	return atomic.AddUint64(&fsys.NodeID, 1)
 }
 
-// NewFS : Create the root directory holder for the mounted FS
-func NewFS() *FS {
+// NewBazilFS : Create the root directory holder for the mounted FS
+func NewBazilFS() *FS {
 	Logger.LogDebug("FD : Creating the root structure for FS")
 
 	fsys := &FS{
