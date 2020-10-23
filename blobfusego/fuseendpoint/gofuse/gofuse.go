@@ -12,6 +12,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
+// gofuseFD : Master struct for global data held in instance
 type gofuseFD struct {
 	refCount int
 
@@ -59,13 +60,12 @@ func ReleaseObj() {
 // InitFuse : Initialize the fuse driver
 func (f *gofuseFD) InitFuse() {
 	Logger.LogDebug("Init the FD : " + fdName)
+
 	var err error
-	instance.rootFD, err = NewGofuseRoot(*Config.BlobfuseConfig.TmpPath)
+	instance.rootFD, err = NewGofuseRoot()
 
 	sec := time.Second * 120
 	opts := &fs.Options{
-		// These options are to be compatible with libfuse defaults,
-		// making benchmarking easier.
 		AttrTimeout:  &sec,
 		EntryTimeout: &sec,
 	}
