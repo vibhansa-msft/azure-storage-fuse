@@ -105,6 +105,8 @@ func (n *gofuseNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) 
 
 }
 
+///// TODO : To be implemented yet
+
 func (n *gofuseNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	p := filepath.Join(n.path(), name)
 	err := os.Mkdir(p, os.FileMode(mode))

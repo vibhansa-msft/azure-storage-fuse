@@ -1,7 +1,3 @@
-// Copyright 2019 the Go-FUSE Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package gofuse
 
 import (
@@ -19,6 +15,7 @@ import (
 )
 
 //  Refer for Stat_t : https://golang.org/pkg/syscall/#Stat_t
+//  Refer for interface and function headers : https://godoc.org/github.com/hanwen/go-fuse/fs
 
 // gofuseNode : Holds data for each node exposed to fuse driver
 type gofuseNode struct {

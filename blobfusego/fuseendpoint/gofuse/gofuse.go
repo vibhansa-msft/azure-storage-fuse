@@ -72,6 +72,11 @@ func (f *gofuseFD) InitFuse() {
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "default_permissions")
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname=blobfusego")
 	opts.MountOptions.Name = "blobfusego"
+	opts.MountOptions.MaxWrite = (4 * 1024 * 1024)
+	opts.MountOptions.MaxReadAhead = (4 * 1024 * 1024)
+	opts.MountOptions.DisableXAttrs = true
+	opts.MountOptions.EnableLocks = false
+
 	rawFS := fs.NewNodeFS(instance.rootFD, opts)
 	instance.server, err = fuse.NewServer(rawFS, *Config.BlobfuseConfig.MountPath, &opts.MountOptions)
 
