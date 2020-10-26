@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
@@ -27,8 +28,39 @@ type azurestorageFS struct {
 
 var instance *azurestorageFS
 var fsName = string("azurestorage")
+
+var writeFileMapLock = sync.RWMutex{}
+var openFileMapLock = sync.RWMutex{}
 var writeFiles = make(map[string]bool)
 var openFiles = make(map[string]*os.File)
+
+func SetWriteFile(name string, flag bool) {
+	writeFileMapLock.Lock()
+	defer writeFileMapLock.Unlock()
+	writeFiles[name] = flag
+}
+
+func GetWriteFile(name string) (bool, bool) {
+	writeFileMapLock.RLock()
+	defer writeFileMapLock.RUnlock()
+
+	e, f := writeFiles[name]
+	return e, f
+}
+
+func SetOpenFile(name string, f *os.File) {
+	openFileMapLock.Lock()
+	defer openFileMapLock.Unlock()
+	openFiles[name] = f
+}
+
+func GetOpenFile(name string) (*os.File, bool) {
+	openFileMapLock.RLock()
+	defer openFileMapLock.RUnlock()
+
+	e, f := openFiles[name]
+	return e, f
+}
 
 var regObj = FSFact.FSManager{CreateObjFunc: CreateObj, ReleaseObjFunc: ReleaseObj}
 
@@ -183,7 +215,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	Logger.LogDebug("FS : OpenFile %s", name)
 	Stats.OpenRequest(fsName)
 
-	openFiles[name] = nil
+	SetOpenFile(name, nil)
 
 	if true {
 		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
@@ -238,16 +270,15 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 func (az *azurestorageFS) CloseFile(name string) (err error) {
 	Logger.LogDebug("FS : CloseFile %s", name)
 
-	if writeFiles[name] == true {
+	if flag, f := GetWriteFile(name); f && flag {
 		// File was written so upload the file now
 		err = az.FlushFile(name)
-		writeFiles[name] = false
+		SetWriteFile(name, false)
 	}
 
-	if openFiles[name] != nil {
-		f := openFiles[name]
-		f.Close()
-		openFiles[name] = nil
+	if e, f := GetOpenFile(name); f && e != nil {
+		e.Close()
+		SetOpenFile(name, nil)
 	}
 
 	os.Remove(*Config.BlobfuseConfig.TmpPath + "/" + name)
@@ -259,16 +290,14 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data 
 	Stats.ReadRequest(fsName)
 	data = make([]byte, size)
 	var f *os.File
+	var found bool
 
-	if openFiles[name] == nil {
-
+	if f, found = GetOpenFile(name); !found || f == nil {
 		f, err = os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 			os.O_RDONLY,
 			Config.BlobfuseConfig.DefaultPerm)
-		openFiles[name] = f
+		SetOpenFile(name, f)
 
-	} else {
-		f = openFiles[name]
 	}
 
 	if err == nil {
@@ -309,13 +338,12 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data 
 	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, size)
 
 	var f *os.File
-	if openFiles[name] == nil {
+	var found bool
+	if f, found = GetOpenFile(name); !found || f == nil {
 		f, err = os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 			os.O_RDWR|os.O_CREATE,
 			Config.BlobfuseConfig.DefaultPerm)
-		openFiles[name] = f
-	} else {
-		f = openFiles[name]
+		SetOpenFile(name, f)
 	}
 
 	if err == nil {
@@ -324,7 +352,7 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data 
 			Logger.LogErr("Failed to read specified bytes form file")
 			return 0, err
 		}
-		writeFiles[name] = true
+		SetWriteFile(name, true)
 		return n, nil
 	}
 
@@ -334,7 +362,7 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data 
 func (az *azurestorageFS) FlushFile(name string) (err error) {
 	Logger.LogDebug("FS : FlushFile %s", name)
 
-	if writeFiles[name] == true {
+	if write, found := GetWriteFile(name); found && write {
 		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
 			os.O_RDONLY,
 			Config.BlobfuseConfig.DefaultPerm)
