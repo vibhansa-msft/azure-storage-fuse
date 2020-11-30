@@ -237,7 +237,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 				return err
 			}
 			size, _ := f.Seek(0, io.SeekEnd)
-			Logger.LogErr("Download complete of %s, %d bytes read", name, size)
+			Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
 		} else {
 			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
 			if err != nil {
@@ -281,7 +281,7 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 		SetOpenFile(name, nil)
 	}
 
-	os.Remove(*Config.BlobfuseConfig.TmpPath + "/" + name)
+	//os.Remove(*Config.BlobfuseConfig.TmpPath + "/" + name)
 	return err
 }
 
@@ -317,6 +317,8 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data 
 		data = data[:n]
 		Stats.ReadBytes(fsName, uint64(n))
 		return data, nil
+	} else {
+		Logger.LogErr("Failed to read : %s", err.Error())
 	}
 
 	blobURL := az.containerURL.NewBlobURL(name)
@@ -335,7 +337,7 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data 
 }
 
 func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data []byte) (bytes int, err error) {
-	Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, size)
+	//Logger.LogDebug("FS : WriteFile %s (%d : %d)", name, offset, size)
 
 	var f *os.File
 	var found bool
@@ -451,11 +453,11 @@ func (az *azurestorageFS) ReleaseFile(name string) error {
 
 // Filesystem level operations
 func (az *azurestorageFS) GetAttr(name string) (attr FSIntf.BlobAttr, err error) {
-	Logger.LogDebug("FS : GetAttr %s", name)
+	//Logger.LogDebug("FS : GetAttr %s", name)
 	attr, err = az.getBlobAttr(name)
-	if err != nil {
-		Logger.LogErr("Failed to get list of blobs (%s)", err.Error)
-	}
+	//if err != nil {
+	//	Logger.LogErr("Failed to get list of blobs (%s)", err.Error)
+	//}
 	return attr, err
 }
 

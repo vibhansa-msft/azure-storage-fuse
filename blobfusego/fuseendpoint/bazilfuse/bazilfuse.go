@@ -64,7 +64,7 @@ func (f *bazilFD) InitFuse() {
 		fuse.Subtype("azure"),
 		fuse.AllowOther(),
 		fuse.AllowNonEmptyMount(),
-		fuse.MaxReadahead(128*1024*1024),
+		fuse.MaxReadahead(2*1024*1024),
 	)
 
 	if err != nil {

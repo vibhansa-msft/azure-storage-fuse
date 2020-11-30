@@ -73,7 +73,7 @@ func (az *azurestorageFS) getBlobAttr(name string) (attr FSIntf.BlobAttr, err er
 	if err != nil {
 		e := StoreErrToErr(err)
 		if e == ErrFileNotFound {
-			Logger.LogErr("Failed to get properties of object %s (%s)", name, ErrStr[ErrFileNotFound])
+			//Logger.LogErr("Failed to get properties of object %s (%s)", name, ErrStr[ErrFileNotFound])
 			return attr, syscall.ENOENT
 		}
 	}
