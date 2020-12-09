@@ -31,11 +31,11 @@ type File struct {
 }
 
 func (f *File) getAttr() error {
-	Logger.LogDebug("FD : File getAttr %s", f.path)
+	//Logger.LogDebug("FD : File getAttr %s", f.path)
 
 	attr, err := BazilFS.client.GetAttr(f.path)
 	if err != nil {
-		Logger.LogErr("FD : Failed to get attribute %s (%s)", f.path, err)
+		//Logger.LogErr("FD : Failed to get attribute %s (%s)", f.path, err)
 		return fuse.ENOENT
 	}
 
@@ -134,7 +134,7 @@ func (f *File) ReadAll(ctx context.Context) ([]byte, error) {
 
 // Write : Write data to file
 func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-	Logger.LogDebug("FD : Write %s", f.path)
+	//Logger.LogDebug("FD : Write %s", f.path)
 
 	f.Lock()
 	defer f.Unlock()
