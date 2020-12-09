@@ -28,9 +28,11 @@ type GlobalConfig struct {
 	StoreContainerName *string // Mandatory    : Container name to be mounted
 	StorageAccountADLS *bool   // Optional : Whether storage account is ADLS or not
 
-	AttrTimeOut *int        // Optional		: Atttibute timeout for fuse caching
-	DefaultPerm os.FileMode // Default permissions for each blob mounted
-	MountTime   time.Time
+	BlockSizeInMB     *int        // Optional : Size of each block in MB
+	ParallelismFactor *int        // Optional : Number of parallel upload/download threads in SDK
+	AttrTimeOut       *int        // Optional		: Atttibute timeout for fuse caching
+	DefaultPerm       os.FileMode // Default permissions for each blob mounted
+	MountTime         time.Time
 }
 
 // BlobfuseConfig : Global config for the application
@@ -59,6 +61,10 @@ func init() {
 	BlobfuseConfig.StoreAuthType = flag.String("authtype", "", "Azure Storage auth type")
 	BlobfuseConfig.StorageAccountADLS = flag.Bool("adls", false, "Storage account if ADLS or not")
 	BlobfuseConfig.StoreContainerName = flag.String("container", "tmp", "Name of the container")
+
+	// Azure GoSDK related param
+	BlobfuseConfig.BlockSizeInMB = flag.Int("block-size-in-mb", 0, "Size of each block in the storage account")
+	BlobfuseConfig.ParallelismFactor = flag.Int("parallelism", 0, "Number of parallel threads per uload or download")
 
 	flag.Usage = Usage
 

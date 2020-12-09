@@ -417,11 +417,14 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 
 	blobURL := az.containerURL.NewBlobURL(name)
 
+	downopt := azblob.DownloadFromBlobOptions{}
+	if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
+		downopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
+		downopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
+	}
+
 	Logger.LogErr("Going for file download %s", name)
-	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{
-		BlockSize:   (8 * 1024 * 1024),
-		Parallelism: 64,
-	})
+	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
@@ -437,11 +440,14 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 
 	blobURL := az.containerURL.NewBlockBlobURL(name)
 
+	upopt := azblob.UploadToBlockBlobOptions{}
+	if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
+		upopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
+		upopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
+	}
+
 	Logger.LogErr("Going for upload of %s", name)
-	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, azblob.UploadToBlockBlobOptions{
-		BlockSize:   (8 * 1024 * 1024),
-		Parallelism: 64,
-	})
+	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, upopt)
 	if err != nil {
 		Logger.LogErr("Upload from file failed for %s (%s)", name, err.Error())
 		return err
