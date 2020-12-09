@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	FSFact "github.com/blobfusego/fswrapper/fscreator"
@@ -424,13 +425,18 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	}
 
 	Logger.LogErr("Going for file download %s", name)
+	time1 := time.Now()
 	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
 	}
+	time2 := time.Now()
 	size, _ := f.Seek(0, io.SeekCurrent)
 	Logger.LogErr("Download complete of %s, %d bytes read", name, size)
+
+	diff := time2.Sub(time1).Seconds()
+	Logger.LogErr("** Download %s done in %d seconds", name, diff)
 
 	return nil
 }
@@ -447,13 +453,18 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 	}
 
 	Logger.LogErr("Going for upload of %s", name)
+	time1 := time.Now()
 	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, upopt)
 	if err != nil {
 		Logger.LogErr("Upload from file failed for %s (%s)", name, err.Error())
 		return err
 	}
+	time2 := time.Now()
 	size, _ := f.Seek(0, io.SeekCurrent)
 	Logger.LogErr("Upload complete of %s, %d bytes read", name, size)
+
+	diff := time2.Sub(time1).Seconds()
+	Logger.LogErr("** Upload %s done in %d seconds", name, diff)
 
 	return nil
 }
