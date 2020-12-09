@@ -416,7 +416,10 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	blobURL := az.containerURL.NewBlobURL(name)
 
 	Logger.LogErr("Going for file download %s", name)
-	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
+	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{
+		BlockSize:   (8 * 1024 * 1024),
+		Parallelism: 64,
+	})
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
@@ -433,7 +436,10 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 	blobURL := az.containerURL.NewBlockBlobURL(name)
 
 	Logger.LogErr("Going for upload of %s", name)
-	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, azblob.UploadToBlockBlobOptions{})
+	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, azblob.UploadToBlockBlobOptions{
+		BlockSize:   (8 * 1024 * 1024),
+		Parallelism: 64,
+	})
 	if err != nil {
 		Logger.LogErr("Upload from file failed for %s (%s)", name, err.Error())
 		return err
