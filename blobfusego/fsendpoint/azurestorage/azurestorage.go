@@ -255,7 +255,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	size, _ := f.Seek(0, io.SeekEnd)
 	Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
 
-	diff := time2.Sub(time1)
+	diff := time2.Sub(time1).Seconds()
 	Logger.LogErr("** Download %s done in %d seconds", name, diff)
 
 	return nil
