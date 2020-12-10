@@ -240,7 +240,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 			size, _ := f.Seek(0, io.SeekEnd)
 			Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
 		} else {
-			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 			if err != nil {
 				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 				return err
