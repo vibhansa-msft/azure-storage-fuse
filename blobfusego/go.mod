@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
-	github.com/Azure/azure-storage-blob-go v0.10.0 // indirect
+	github.com/Azure/azure-storage-blob-go v0.12.0 // indirect
 	github.com/blobfusego v0.0.0-00010101000000-000000000000
 	github.com/go-delve/delve v1.5.0 // indirect
 	github.com/google/go-dap v0.3.0 // indirect
