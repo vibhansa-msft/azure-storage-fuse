@@ -232,13 +232,22 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 
 		Logger.LogErr("Going for file download %s", name)
 		if true {
-			err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, azblob.DownloadFromBlobOptions{})
+			downopt := azblob.DownloadFromBlobOptions{}
+			if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
+				downopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
+				downopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
+			}
+			err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
+			time1 := time.Now()
 			if err != nil {
 				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 				return err
 			}
+			time2 := time.Now()
 			size, _ := f.Seek(0, io.SeekEnd)
 			Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
+			diff := time2.Sub(time1)
+			Logger.LogErr("** Download %s done in %d seconds", name, diff)
 		} else {
 			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 			if err != nil {
