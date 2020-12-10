@@ -3,7 +3,6 @@ package azurestorage
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"sync"
 	"syscall"
@@ -218,61 +217,46 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 
 	SetOpenFile(name, nil)
 
-	if true {
-		f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
-			os.O_RDWR|os.O_APPEND|os.O_CREATE,
-			Config.BlobfuseConfig.DefaultPerm)
+	if _, err := os.Stat(*Config.BlobfuseConfig.TmpPath + "/" + name); os.IsNotExist(err) {
+		f, err := os.Create("/tmp/dat2")
 		if err != nil {
-			Logger.LogErr("Failed to open local file")
+			Logger.LogErr("Failed to create local file")
 			Stats.OpenRequestFail(fsName)
 			return err
 		}
-
-		blobURL := az.containerURL.NewBlobURL(name)
-
-		Logger.LogErr("Going for file download %s", name)
-		if true {
-			downopt := azblob.DownloadFromBlobOptions{}
-			if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
-				downopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
-				downopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
-			}
-			err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
-			time1 := time.Now()
-			if err != nil {
-				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
-				return err
-			}
-			time2 := time.Now()
-			size, _ := f.Seek(0, io.SeekEnd)
-			Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
-			diff := time2.Sub(time1)
-			Logger.LogErr("** Download %s done in %d seconds", name, diff)
-		} else {
-			resp, err := blobURL.Download(az.ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
-			if err != nil {
-				Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
-				return err
-			}
-			Logger.LogErr("Download complete %s", name)
-
-			data, err := ioutil.ReadAll(resp.Response().Body)
-			if err != nil {
-				Logger.LogErr("Failed to read data from resp")
-				return err
-			}
-			Logger.LogErr("All data read %s", name)
-
-			_, err = f.Write(data)
-			if err != nil {
-				Logger.LogErr("Failed to save data to file")
-				return err
-			}
-			size, _ := f.Seek(0, io.SeekCurrent)
-			Logger.LogErr("File Written %s with %d bytes", name, size)
-			resp.Body(azblob.RetryReaderOptions{}).Close()
-		}
+		f.Close()
 	}
+
+	f, err := os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+		os.O_RDWR,
+		Config.BlobfuseConfig.DefaultPerm)
+	if err != nil {
+		Logger.LogErr("Failed to open local file")
+		Stats.OpenRequestFail(fsName)
+		return err
+	}
+	defer f.Close()
+
+	blobURL := az.containerURL.NewBlobURL(name)
+
+	Logger.LogErr("Going for file download %s", name)
+	downopt := azblob.DownloadFromBlobOptions{}
+	if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
+		downopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
+		downopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
+	}
+	time1 := time.Now()
+	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
+	if err != nil {
+		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
+		return err
+	}
+	time2 := time.Now()
+	size, _ := f.Seek(0, io.SeekEnd)
+	Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
+
+	diff := time2.Sub(time1)
+	Logger.LogErr("** Download %s done in %d seconds", name, diff)
 
 	return nil
 }
@@ -307,7 +291,6 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data 
 			os.O_RDONLY,
 			Config.BlobfuseConfig.DefaultPerm)
 		SetOpenFile(name, f)
-
 	}
 
 	if err == nil {
@@ -441,7 +424,7 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 		return err
 	}
 	time2 := time.Now()
-	size, _ := f.Seek(0, io.SeekCurrent)
+	size, _ := f.Seek(0, io.SeekEnd)
 	Logger.LogErr("Download complete of %s, %d bytes read", name, size)
 
 	diff := time2.Sub(time1).Seconds()
@@ -469,7 +452,7 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 		return err
 	}
 	time2 := time.Now()
-	size, _ := f.Seek(0, io.SeekCurrent)
+	size, _ := f.Seek(0, io.SeekEnd)
 	Logger.LogErr("Upload complete of %s, %d bytes read", name, size)
 
 	diff := time2.Sub(time1).Seconds()
