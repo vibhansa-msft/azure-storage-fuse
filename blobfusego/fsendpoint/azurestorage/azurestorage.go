@@ -189,7 +189,7 @@ func (az *azurestorageFS) CreateFile(name string, _ os.FileMode) error {
 	}
 	f.Close()
 
-	return nil
+	return az.CopyFromFile(name, nil)
 }
 
 func (az *azurestorageFS) DeleteFile(name string) error {
