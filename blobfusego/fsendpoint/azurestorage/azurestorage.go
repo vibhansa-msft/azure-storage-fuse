@@ -260,7 +260,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	Logger.LogErr("Download complete of %s, %d bytes read", *Config.BlobfuseConfig.TmpPath+"/"+name, size)
 
 	diff := time2.Sub(time1).Seconds()
-	Logger.LogErr("** Download %s done in %d seconds", name, int(diff))
+	Logger.LogErr("** Download %s done in %d seconds", name, diff)
 
 	return nil
 }
@@ -433,7 +433,7 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	Logger.LogErr("Download complete of %s, %d bytes read", name, size)
 
 	diff := time2.Sub(time1).Seconds()
-	Logger.LogErr("** Download %s done in %d seconds", name, int(diff))
+	Logger.LogErr("** Download %s done in %d seconds", name, diff)
 
 	return nil
 }
