@@ -27,6 +27,7 @@ func main() {
 		filename := fmt.Sprintf("%s%d", filepath, i)
 		blobURL := containerURL.NewBlockBlobURL(path.Base(filename))
 
+		fmt.Println("Next test file ", filename)
 		// Download the file
 		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 		if err != nil {
