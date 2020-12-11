@@ -3,11 +3,13 @@ package azurestorage
 import (
 	"context"
 	"io"
+	"net/url"
 	"os"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/Azure/azure-pipeline-go/pipeline"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	FSFact "github.com/blobfusego/fswrapper/fscreator"
 	FSIntf "github.com/blobfusego/fswrapper/fsinterface"
@@ -21,9 +23,10 @@ import (
 
 type azurestorageFS struct {
 	refCount     int
+	epURL        *url.URL
+	azPipeline   pipeline.Pipeline
 	serviceURL   azblob.ServiceURL
 	containerURL azblob.ContainerURL
-	ctx          context.Context
 }
 
 var instance *azurestorageFS
@@ -189,7 +192,7 @@ func (az *azurestorageFS) CreateFile(name string, _ os.FileMode) error {
 	}
 
 	data := make([]byte, 0)
-	_, err := azblob.UploadBufferToBlockBlob(az.ctx, data, blobURL, o)
+	_, err := azblob.UploadBufferToBlockBlob(context.Background(), data, blobURL, o)
 	if err != nil {
 		Logger.LogErr("Falied to write buffer to blob")
 		return syscall.ENOENT
@@ -202,7 +205,7 @@ func (az *azurestorageFS) DeleteFile(name string) error {
 	Logger.LogDebug("FS : DeleteFile %s", name)
 
 	blobURL := az.containerURL.NewBlobURL(name)
-	_, err := blobURL.Delete(az.ctx, azblob.DeleteSnapshotsOptionInclude, azblob.BlobAccessConditions{})
+	_, err := blobURL.Delete(context.Background(), azblob.DeleteSnapshotsOptionInclude, azblob.BlobAccessConditions{})
 	if err != nil {
 		Logger.LogErr("Failed to delete the file %s (%s)", name, err.Error())
 		return err
@@ -218,7 +221,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	SetOpenFile(name, nil)
 
 	if _, err := os.Stat(*Config.BlobfuseConfig.TmpPath + "/" + name); os.IsNotExist(err) {
-		f, err := os.Create("/tmp/dat2")
+		f, err := os.Create(*Config.BlobfuseConfig.TmpPath + "/" + name)
 		if err != nil {
 			Logger.LogErr("Failed to create local file")
 			Stats.OpenRequestFail(fsName)
@@ -237,7 +240,7 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 	}
 	defer f.Close()
 
-	blobURL := az.containerURL.NewBlobURL(name)
+	blobURL := az.containerURL.NewBlockBlobURL(name)
 
 	Logger.LogErr("Going for file download %s", name)
 	downopt := azblob.DownloadFromBlobOptions{}
@@ -245,8 +248,9 @@ func (az *azurestorageFS) OpenFile(name string, flag int, mode os.FileMode) erro
 		downopt.BlockSize = (int64(*Config.BlobfuseConfig.BlockSizeInMB) * 1024 * 1024)
 		downopt.Parallelism = uint16(*Config.BlobfuseConfig.ParallelismFactor)
 	}
+
+	err = azblob.DownloadBlobToFile(context.Background(), blobURL.BlobURL, 0, 0, f, downopt)
 	time1 := time.Now()
-	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
@@ -314,13 +318,13 @@ func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data 
 		Logger.LogErr("Failed to read : %s", err.Error())
 	}
 
-	blobURL := az.containerURL.NewBlobURL(name)
+	blobURL := az.containerURL.NewBlockBlobURL(name)
 	o := azblob.DownloadFromBlobOptions{
 		Parallelism: 10,
 		BlockSize:   0,
 	}
 
-	err = azblob.DownloadBlobToBuffer(az.ctx, blobURL, offset, size, data, o)
+	err = azblob.DownloadBlobToBuffer(context.Background(), blobURL.BlobURL, offset, size, data, o)
 	if err != nil {
 		Stats.ReadRequestFail(fsName)
 		Logger.LogErr("Failed to download the file")
@@ -382,7 +386,7 @@ func (az *azurestorageFS) TruncateFile(name string, size int64) error {
 	}
 
 	data := make([]byte, size)
-	err := azblob.DownloadBlobToBuffer(az.ctx, blobURL, 0, size, data, i)
+	err := azblob.DownloadBlobToBuffer(context.Background(), blobURL, 0, size, data, i)
 	if err != nil {
 		Logger.LogErr("Failed to download the file")
 	}
@@ -396,7 +400,7 @@ func (az *azurestorageFS) TruncateFile(name string, size int64) error {
 	}
 
 	upblobURL := az.containerURL.NewBlockBlobURL(name)
-	_, err = azblob.UploadBufferToBlockBlob(az.ctx, data, upblobURL, o)
+	_, err = azblob.UploadBufferToBlockBlob(context.Background(), data, upblobURL, o)
 	if err != nil {
 		Logger.LogErr("Falied to write buffer to blob")
 		return syscall.ENOENT
@@ -408,7 +412,7 @@ func (az *azurestorageFS) TruncateFile(name string, size int64) error {
 func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	Logger.LogDebug("FS : CopyToFile %s", name)
 
-	blobURL := az.containerURL.NewBlobURL(name)
+	blobURL := az.containerURL.NewBlockBlobURL(name)
 
 	downopt := azblob.DownloadFromBlobOptions{}
 	if (*Config.BlobfuseConfig.BlockSizeInMB) != 0 {
@@ -417,8 +421,9 @@ func (az *azurestorageFS) CopyToFile(name string, f *os.File) (err error) {
 	}
 
 	Logger.LogErr("Going for file download %s", name)
+
+	err = azblob.DownloadBlobToFile(context.Background(), blobURL.BlobURL, 0, 0, f, downopt)
 	time1 := time.Now()
-	err = azblob.DownloadBlobToFile(az.ctx, blobURL, 0, 0, f, downopt)
 	if err != nil {
 		Logger.LogErr("Download to file failed for %s (%s)", name, err.Error())
 		return err
@@ -446,7 +451,7 @@ func (az *azurestorageFS) CopyFromFile(name string, f *os.File) (err error) {
 
 	Logger.LogErr("Going for upload of %s", name)
 	time1 := time.Now()
-	_, err = azblob.UploadFileToBlockBlob(az.ctx, f, blobURL, upopt)
+	_, err = azblob.UploadFileToBlockBlob(context.Background(), f, blobURL, upopt)
 	if err != nil {
 		Logger.LogErr("Upload from file failed for %s (%s)", name, err.Error())
 		return err

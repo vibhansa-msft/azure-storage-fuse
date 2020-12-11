@@ -23,7 +23,8 @@ type GlobalConfig struct {
 	LogFileCount  *int    // Optional		: Number of logs files to be used for rotation
 
 	StoreAccountName   *string // Mandatory : Storage account name
-	StoreAccountKey    *string // Optional : Storage account key for
+	StoreAccountKey    *string // Optional : Storage account key
+	StoreAccountSAS    *string // Optional : Storage account SAS
 	StoreAuthType      *string // Mandatory : Auth type chosen by customer
 	StoreContainerName *string // Mandatory    : Container name to be mounted
 	StorageAccountADLS *bool   // Optional : Whether storage account is ADLS or not
@@ -58,6 +59,7 @@ func init() {
 	// Azure storage account config
 	BlobfuseConfig.StoreAccountName = flag.String("account", "", "Azure Storage account name")
 	BlobfuseConfig.StoreAccountKey = flag.String("accountkey", "", "Azure Storage account key")
+	BlobfuseConfig.StoreAccountSAS = flag.String("sas", "", "Azure Storage account sas")
 	BlobfuseConfig.StoreAuthType = flag.String("authtype", "", "Azure Storage auth type")
 	BlobfuseConfig.StorageAccountADLS = flag.Bool("adls", false, "Storage account if ADLS or not")
 	BlobfuseConfig.StoreContainerName = flag.String("container", "tmp", "Name of the container")
@@ -92,11 +94,24 @@ func overrideWithEnvOptions() {
 	if str != "" {
 		*BlobfuseConfig.StoreAccountKey = str
 	}
+
+	str = os.Getenv("AZURE_STORAGE_ACCESS_SAS")
+	if str != "" {
+		*BlobfuseConfig.StoreAccountSAS = str
+	}
 }
 
 // IsAuthTypeAccKey : Check whether given auth type is key or not
 func IsAuthTypeAccKey() bool {
 	if *BlobfuseConfig.StoreAuthType == "key" {
+		return true
+	}
+	return false
+}
+
+// IsAuthTypeSAS : Check whether given auth type is SAS or not
+func IsAuthTypeSAS() bool {
+	if *BlobfuseConfig.StoreAuthType == "sas" {
 		return true
 	}
 	return false
@@ -118,6 +133,11 @@ func validateConfig() {
 			Logger.LogDebug("Chosen AuthType : Key")
 			if *BlobfuseConfig.StoreAccountKey == "" {
 				panic("Storage Account Key is missing")
+			}
+		} else if IsAuthTypeSAS() {
+			Logger.LogDebug("Chosen AuthType : SAS")
+			if *BlobfuseConfig.StoreAccountSAS == "" {
+				panic("Storage Account SAS is missing")
 			}
 		} else {
 			panic("Invalid AuthType provided")

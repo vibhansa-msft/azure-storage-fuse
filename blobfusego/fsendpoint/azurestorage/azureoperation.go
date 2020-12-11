@@ -1,6 +1,7 @@
 package azurestorage
 
 import (
+	"context"
 	"fmt"
 	"syscall"
 
@@ -35,7 +36,7 @@ func (az *azurestorageFS) getBlobList(name string) (blobLst []FSIntf.BlobAttr, e
 	}
 
 	for marker := (azblob.Marker{}); marker.NotDone(); {
-		listBlob, err = az.containerURL.ListBlobsHierarchySegment(az.ctx, marker, "/",
+		listBlob, err = az.containerURL.ListBlobsHierarchySegment(context.Background(), marker, "/",
 			azblob.ListBlobsSegmentOptions{MaxResults: maxResults,
 				Prefix: name,
 				Details: azblob.BlobListingDetails{
@@ -68,7 +69,7 @@ func (az *azurestorageFS) getBlobList(name string) (blobLst []FSIntf.BlobAttr, e
 
 func (az *azurestorageFS) getBlobAttr(name string) (attr FSIntf.BlobAttr, err error) {
 	blobURL := az.containerURL.NewBlockBlobURL(name)
-	prop, err := blobURL.GetProperties(az.ctx, azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
+	prop, err := blobURL.GetProperties(context.Background(), azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
 
 	if err != nil {
 		e := StoreErrToErr(err)

@@ -13,66 +13,19 @@ import (
 	"github.com/Azure/azure-storage-blob-go/azblob"
 )
 
-// getServiceURL : Get the service URL using the config
-func getServiceURL() (serviceURL azblob.ServiceURL, err error) {
-	var pipeline pipeline.Pipeline
-
-	if Config.IsAuthTypeAccKey() {
-		pipeline, err = getAccKeyPipeline()
-		if err != nil {
-			Logger.LogErr("Failed to create pipeline using storage key")
-			return serviceURL, err
-		}
-	}
-
-	endpoint := "blob"
-	if *Config.BlobfuseConfig.StorageAccountADLS {
-		endpoint = "dfs"
-	}
-
-	Logger.LogDebug("Selected endpoint is %s", endpoint)
-
-	url, err := url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net",
-		*Config.BlobfuseConfig.StoreAccountName, endpoint))
-
-	if err != nil {
-		Logger.LogErr("Failed to parse the URL (%s)", err.Error)
-		return serviceURL, err
-	}
-
-	return azblob.NewServiceURL(*url, pipeline), nil
-}
-
-func getAccKeyPipeline() (p pipeline.Pipeline, err error) {
-
-	credential, err := azblob.NewSharedKeyCredential(
-		*Config.BlobfuseConfig.StoreAccountName,
-		*Config.BlobfuseConfig.StoreAccountKey)
-
-	if credential == nil || err != nil {
-		Logger.LogDebug("Failed to create credential %s", err.Error())
-		return p, err
-	}
-
-	// Create pipeline to intialize factories in sdk for retry logic
-	return azblob.NewPipeline(credential, azPiplineOptions), nil
-}
-
 // validateAccKey : Validate storage account using account key
-func (az *azurestorageFS) validateAccount() error {
-	serviceURL, err := getServiceURL()
+func (az *azurestorageFS) validateAccount() (err error) {
+	az.serviceURL, err = getServiceURL(az)
 	if err != nil {
 		Logger.LogErr("Failed to create service URL")
 		return err
 	}
-	az.serviceURL = serviceURL
-	az.containerURL = az.serviceURL.NewContainerURL(*Config.BlobfuseConfig.StoreContainerName)
-
-	az.ctx = context.Background()
+	//az.containerURL = az.serviceURL.NewContainerURL(*Config.BlobfuseConfig.StoreContainerName)
+	az.containerURL = azblob.NewContainerURL(*az.epURL, az.azPipeline)
 	marker := (azblob.Marker{})
 
 	//var lst *azblob.ListBlobsHierarchySegmentResponse
-	_, err = az.containerURL.ListBlobsHierarchySegment(az.ctx, marker, "/",
+	_, err = az.containerURL.ListBlobsHierarchySegment(context.Background(), marker, "/",
 		azblob.ListBlobsSegmentOptions{MaxResults: 2})
 
 	if err != nil {
@@ -86,6 +39,68 @@ func (az *azurestorageFS) validateAccount() error {
 		}
 	*/
 	return nil
+}
+
+// getServiceURL : Get the service URL using the config
+func getServiceURL(az *azurestorageFS) (serviceURL azblob.ServiceURL, err error) {
+	if Config.IsAuthTypeAccKey() {
+		az.azPipeline, err = getAccKeyPipeline()
+		if err != nil {
+			Logger.LogErr("Failed to create pipeline using storage key")
+			return serviceURL, err
+		}
+	} else if Config.IsAuthTypeSAS() {
+		az.azPipeline, err = getSASPipeline()
+		if err != nil {
+			Logger.LogErr("Failed to create pipeline using storage key")
+			return serviceURL, err
+		}
+	}
+
+	endpoint := "blob"
+	if *Config.BlobfuseConfig.StorageAccountADLS {
+		endpoint = "dfs"
+	}
+
+	Logger.LogErr("Selected endpoint is %s", endpoint)
+	if Config.IsAuthTypeAccKey() {
+		az.epURL, err = url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net",
+			*Config.BlobfuseConfig.StoreAccountName, endpoint))
+	} else if Config.IsAuthTypeSAS() {
+		az.epURL, err = url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net/%s%s",
+			*Config.BlobfuseConfig.StoreAccountName,
+			endpoint,
+			*Config.BlobfuseConfig.StoreContainerName,
+			*Config.BlobfuseConfig.StoreAccountSAS))
+	}
+
+	if err != nil {
+		Logger.LogErr("Failed to parse the URL (%s)", err.Error)
+		return serviceURL, err
+	}
+
+	return azblob.NewServiceURL(*az.epURL, az.azPipeline), nil
+}
+
+func getAccKeyPipeline() (p pipeline.Pipeline, err error) {
+	Logger.LogErr("Creating a key based pipeline")
+	credential, err := azblob.NewSharedKeyCredential(
+		*Config.BlobfuseConfig.StoreAccountName,
+		*Config.BlobfuseConfig.StoreAccountKey)
+
+	if credential == nil || err != nil {
+		Logger.LogDebug("Failed to create credential %s", err.Error())
+		return p, err
+	}
+
+	// Create pipeline to intialize factories in sdk for retry logic
+	return azblob.NewPipeline(credential, azPiplineOptions), nil
+}
+
+func getSASPipeline() (p pipeline.Pipeline, err error) {
+	Logger.LogErr("Creating a SAS based pipeline")
+	c := azblob.NewAnonymousCredential()
+	return azblob.NewPipeline(c, azblob.PipelineOptions{}), nil
 }
 
 var azPiplineOptions = azblob.PipelineOptions{
