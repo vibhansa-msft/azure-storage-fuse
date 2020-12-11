@@ -201,7 +201,9 @@ func (az *azurestorageFS) DeleteFile(name string) error {
 		Logger.LogErr("Failed to delete the file %s (%s)", name, err.Error())
 		return err
 	}
-
+	delete(openFiles, name)
+	delete(writeFiles, name)
+	err = os.Remove(*Config.BlobfuseConfig.TmpPath + "/" + name)
 	return nil
 }
 
@@ -316,7 +318,7 @@ func (az *azurestorageFS) CopyToFile(name string, fi *os.File) (err error) {
 	Logger.LogDebug("FS : CopyToFile %s", name)
 
 	f, err := os.Create(*Config.BlobfuseConfig.TmpPath + "/" + name)
-	Logger.LogErr("Downloading to %s", *Config.BlobfuseConfig.TmpPath + "/" + name)
+	Logger.LogErr("Downloading to %s", *Config.BlobfuseConfig.TmpPath+"/"+name)
 
 	defer f.Close()
 	blobURL := az.containerURL.NewBlockBlobURL(name)
