@@ -101,8 +101,14 @@ func (n *gofuseNode) Write(ctx context.Context, fh fs.FileHandle, buf []byte, of
 }
 
 func (n *gofuseNode) Unlink(ctx context.Context, name string) syscall.Errno {
+	err := instance.client.DeleteFile(name)
+	if err != nil {
+		Logger.LogErr("Unable to delete file %s", name)
+		return fs.ToErrno(err)
+	}
+
 	p := filepath.Join(n.path(), name)
-	err := syscall.Unlink(p)
+	err = syscall.Unlink(p)
 	return fs.ToErrno(err)
 }
 
