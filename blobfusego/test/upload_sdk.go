@@ -29,7 +29,7 @@ func main() {
 
 		fmt.Println("Next test file ", filename)
 		// Download the file
-		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -55,7 +55,10 @@ func main() {
 		file.Close()
 
 		// Upload the file
-		file, err = os.OpenFile(filename, os.O_RDONLY, 0777)
+		file, err = os.Open(filename)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Println("upload : ", filename)
 
 		time1 = time.Now()
