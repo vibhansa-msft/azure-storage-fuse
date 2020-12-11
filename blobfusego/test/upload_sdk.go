@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"time"
+	"io"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 )
@@ -25,12 +26,13 @@ func main() {
 	for i := 1; i < 4; i++ {
 		// Generate the url
 		blobname := fmt.Sprintf("%s%d", filepath, i)
-		filename := fmt.Sprintf("%s%s", "/mnt/ramdisk", blobname)
+		filename := fmt.Sprintf("%s%s", "/mnt/ramdisk/", blobname)
 		blobURL := containerURL.NewBlockBlobURL(path.Base(blobname))
 
+		fmt.Println("----------------------------------------------------------------------")
 		fmt.Println("Next test file ", filename)
 		// Download the file
-		file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0777)
+		file, err := os.Create(filename)
 		if err != nil {
 			panic(err)
 		}
@@ -49,12 +51,15 @@ func main() {
 			fmt.Println(err.Error())
 		}
 		time2 := time.Now()
-		fmt.Println("download done : ", filename)
+		size, _ := file.Seek(0, io.SeekEnd)
+
+		fmt.Println("download done : ", filename, " size : ", size)
 
 		diff := time2.Sub(time1).Seconds()
 		fmt.Println("Time taken to Download ", filename, "is ", diff, " Seconds")
 		file.Close()
 
+		fmt.Println("----------------------------------------------------------------------")
 		// Upload the file
 		file, err = os.Open(filename)
 		if err != nil {
@@ -81,7 +86,7 @@ func main() {
 		diff = time2.Sub(time1).Seconds()
 		fmt.Println("Time taken to Upload ", filename, "is ", diff, " Seconds")
 		file.Close()
-
+		
 		_ = os.Remove(filename)
 	}
 
