@@ -64,8 +64,9 @@ func getServiceURL(az *azurestorageFS) (serviceURL azblob.ServiceURL, err error)
 
 	Logger.LogErr("Selected endpoint is %s", endpoint)
 	if Config.IsAuthTypeAccKey() {
-		az.epURL, err = url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net",
-			*Config.BlobfuseConfig.StoreAccountName, endpoint))
+		az.epURL, err = url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net/%s",
+			*Config.BlobfuseConfig.StoreAccountName, endpoint,
+			*Config.BlobfuseConfig.StoreContainerName))
 	} else if Config.IsAuthTypeSAS() {
 		az.epURL, err = url.Parse(fmt.Sprintf("https://%s.%s.core.windows.net/%s%s",
 			*Config.BlobfuseConfig.StoreAccountName,

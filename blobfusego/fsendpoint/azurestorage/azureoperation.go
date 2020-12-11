@@ -45,7 +45,10 @@ func (az *azurestorageFS) getBlobList(name string) (blobLst []FSIntf.BlobAttr, e
 					Snapshots: false,
 				},
 			})
-
+		if listBlob == nil {
+			Logger.LogErr("Failed to get the list %s", err.Error())
+			return blobLst, err
+		}
 		// Store the next marker to next iteration
 		marker = listBlob.NextMarker
 
