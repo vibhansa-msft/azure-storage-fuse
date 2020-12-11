@@ -316,6 +316,8 @@ func (az *azurestorageFS) CopyToFile(name string, fi *os.File) (err error) {
 	Logger.LogDebug("FS : CopyToFile %s", name)
 
 	f, err := os.Create(*Config.BlobfuseConfig.TmpPath + "/" + name)
+	Logger.LogErr("Downloading to %s", *Config.BlobfuseConfig.TmpPath + "/" + name)
+
 	defer f.Close()
 	blobURL := az.containerURL.NewBlockBlobURL(name)
 
