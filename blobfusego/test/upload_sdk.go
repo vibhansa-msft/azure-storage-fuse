@@ -24,8 +24,9 @@ func main() {
 
 	for i := 1; i < 4; i++ {
 		// Generate the url
-		filename := fmt.Sprintf("%s%d", filepath, i)
-		blobURL := containerURL.NewBlockBlobURL(path.Base(filename))
+		blobname := fmt.Sprintf("%s%d", filepath, i)
+		filename := fmt.Sprintf("%s%s", "/mnt/ramdisk", blobname)
+		blobURL := containerURL.NewBlockBlobURL(path.Base(blobname))
 
 		fmt.Println("Next test file ", filename)
 		// Download the file
