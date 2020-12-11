@@ -33,6 +33,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("download : ", filename)
 		time1 := time.Now()
 		err = azblob.DownloadBlobToFile(
 			context.Background(),
@@ -47,12 +48,16 @@ func main() {
 			fmt.Println(err.Error())
 		}
 		time2 := time.Now()
+		fmt.Println("download done : ", filename)
+
 		diff := time2.Sub(time1).Seconds()
 		fmt.Println("Time taken to Download ", filename, "is ", diff, " Seconds")
 		file.Close()
 
 		// Upload the file
 		file, err = os.OpenFile(filename, os.O_RDONLY, 0777)
+		fmt.Println("upload : ", filename)
+
 		time1 = time.Now()
 		_, err = azblob.UploadFileToBlockBlob(
 			context.Background(),
@@ -67,11 +72,13 @@ func main() {
 		}
 
 		time2 = time.Now()
+		fmt.Println("upload done : ", filename)
+
 		diff = time2.Sub(time1).Seconds()
 		fmt.Println("Time taken to Upload ", filename, "is ", diff, " Seconds")
 		file.Close()
 
-		_ = os.Remove(filepath)
+		_ = os.Remove(filename)
 	}
 
 }
