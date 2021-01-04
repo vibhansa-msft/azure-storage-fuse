@@ -283,11 +283,12 @@ func (az *azurestorageFS) WriteFile(name string, offset int64, size int64, data 
 			return 0, err
 		}
 		SetWriteFile(name, true)
-		f.Sync()
+		//f.Sync()
 
 		return n, nil
 	}
 
+	//Logger.LogDebug("FS : WriteFile Done %s (%d : %d)", name, offset, size)
 	return 0, err
 }
 
@@ -295,6 +296,10 @@ func (az *azurestorageFS) FlushFile(name string) (err error) {
 	Logger.LogDebug("FS : FlushFile %s", name)
 
 	if write, found := GetWriteFile(name); found && write {
+		//f, _ := GetOpenFile(name)
+		//f.Sync();
+		//f.Close()
+		Logger.LogDebug("FS : Sync of file done %s", name)
 		return az.CopyFromFile(name, nil)
 		/*
 			f, err := os.Open(*Config.BlobfuseConfig.TmpPath + "/" + name)

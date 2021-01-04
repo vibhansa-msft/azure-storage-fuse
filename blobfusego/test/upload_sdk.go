@@ -23,10 +23,11 @@ func main() {
 	cURL, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s%s", accountName, containerName, sas))
 	containerURL := azblob.NewContainerURL(*cURL, p)
 
-	for i := 1; i < 4; i++ {
+	for i := 1; i < 7; i++ {
 		// Generate the url
 		blobname := fmt.Sprintf("%s%d", filepath, i)
-		filename := fmt.Sprintf("%s%s", "/mnt/ramdisk/", blobname)
+		//filename := fmt.Sprintf("%s%s", "/mnt/ramdisk/", blobname)
+		filename := fmt.Sprintf("%s%s", "/mnt/blobfusetmp/", blobname)
 		blobURL := containerURL.NewBlockBlobURL(path.Base(blobname))
 
 		fmt.Println("----------------------------------------------------------------------")
