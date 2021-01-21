@@ -9,6 +9,7 @@ require (
 	github.com/go-delve/delve v1.5.0 // indirect
 	github.com/google/go-dap v0.3.0 // indirect
 	github.com/hanwen/go-fuse/v2 v2.0.3 // indirect
+	github.com/jacobsa/fuse v0.0.0-20201216155545-e0296dec955f // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mdempsky/gocode v0.0.0-20200405233807-4acdcbdea79d // indirect

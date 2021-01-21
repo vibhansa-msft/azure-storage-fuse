@@ -167,3 +167,8 @@ func LogErr(msg string, args ...interface{}) {
 func LogCrit(msg string, args ...interface{}) {
 	EnqeueLog(msg, LogLvlCrit, args...)
 }
+
+// GetLoggerObj : Get the logger object for other libs
+func GetLoggerObj() *log.Logger {
+	return Logger.logger
+}

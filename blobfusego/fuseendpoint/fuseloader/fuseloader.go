@@ -4,4 +4,5 @@ import (
 	// Just load all the factory object packages so that they register to factory
 	_ "github.com/blobfusego/fuseendpoint/bazilfuse"
 	_ "github.com/blobfusego/fuseendpoint/gofuse"
+	_ "github.com/blobfusego/fuseendpoint/jacobsafuse"
 )
