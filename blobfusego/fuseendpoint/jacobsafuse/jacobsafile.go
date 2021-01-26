@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"path/filepath"
+	"time"
 
 	Logger "github.com/blobfusego/global/logger"
 	"github.com/jacobsa/fuse"
@@ -36,12 +37,23 @@ func (n *jacobNode) CreateFile(
 
 	Logger.LogDebug("FD : CreateFile called for " + filepath.Join(n.Path(), op.Name))
 
-	p := filepath.Join(n.Path(), op.Name)
+	if _, found := n.nameChild[op.Name]; found {
+		Logger.LogErr("FD : File already exists with the same name " + op.Name)
+		return fuse.EEXIST
+	}
 
+	p := filepath.Join(n.Path(), op.Name)
 	if err := instance.client.CreateFile(p, 0); err != nil {
 		Logger.LogErr("FD : Failed to create file %s (%s)", n.Path(), err.Error())
 		return err
 	}
+
+	c := n.CreateChild(op.Name)
+	op.Entry.Child = c.nodeID
+	op.Entry.Attributes = c.attrs
+	op.Entry.AttributesExpiration = time.Now().Add(120 * time.Second)
+	op.Entry.EntryExpiration = op.Entry.AttributesExpiration
+
 	return nil
 }
 
@@ -80,9 +92,9 @@ func (n *jacobNode) WriteFile(
 
 	Logger.LogDebug("FD : WriteFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Data))
 
-	bytes, err := instance.client.WriteFile(n.Path(), op.Offset, int64(len(op.Data)), op.Data)
+	bytes, err := instance.client.WriteFile(child.Path(), op.Offset, int64(len(op.Data)), op.Data)
 	if err != nil || bytes != len(op.Data) {
-		Logger.LogErr("FD : Failed to read the file %s (%s)", n.Path(), err.Error())
+		Logger.LogErr("FD : Failed to read the file %s (%s)", child.Path(), err.Error())
 		return err
 	}
 	return nil

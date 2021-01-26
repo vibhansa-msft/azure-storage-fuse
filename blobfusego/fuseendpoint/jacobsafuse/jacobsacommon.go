@@ -161,6 +161,35 @@ func NewJacobNode(attr FSIntf.BlobAttr) *jacobNode {
 	return fs
 }
 
+// CreateChild : Create new file in the present directory
+func (n *jacobNode) CreateChild(name string) *jacobNode {
+	Logger.LogDebug("FD : CreateChild called")
+
+	fs := &jacobNode{
+		nodePath: name,
+		nodeID:   fuseops.InodeID(nextID()),
+
+		attrs: fuseops.InodeAttributes{
+			Mode:   Config.BlobfuseConfig.DefaultPerm,
+			Uid:    0,
+			Gid:    0,
+			Nlink:  1,
+			Size:   0,
+			Mtime:  time.Now(),
+			Atime:  time.Now(),
+			Ctime:  time.Now(),
+			Crtime: time.Now(),
+		},
+		childLck: sync.RWMutex{},
+	}
+
+	fs.attrs.Mode = Config.BlobfuseConfig.DefaultPerm | os.ModeIrregular
+	fs.direntType = fuseutil.DT_File
+
+	n.AddChild(name, fs)
+	return fs
+}
+
 func (n *jacobNode) AddChild(name string, node *jacobNode) error {
 	n.child[node.nodeID] = node
 	n.nameChild[name] = node
