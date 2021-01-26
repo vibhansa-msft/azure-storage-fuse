@@ -80,7 +80,7 @@ func (n *jacobNode) setSymlink(bool) {
 }
 
 func (n *jacobNode) GetChildByInode(id fuseops.InodeID) *jacobNode {
-	Logger.LogDebug("FD : GetChildByInode called for %s (%d)", n.Path(), id)
+	//Logger.LogDebug("FD : GetChildByInode called for %s (%d)", n.Path(), id)
 
 	n.childLck.RLock()
 	defer n.childLck.RUnlock()
@@ -97,7 +97,7 @@ func (n *jacobNode) GetChildByInode(id fuseops.InodeID) *jacobNode {
 
 // NewJacobRoot : Create the root node for the mounted FS
 func NewJacobRoot() *jacobNode {
-	Logger.LogDebug("FD : NewJacobRoot called")
+	//Logger.LogDebug("FD : NewJacobRoot called")
 
 	fs := &jacobNode{
 		nodePath: "",
@@ -126,7 +126,7 @@ func NewJacobRoot() *jacobNode {
 
 // NewJacobNode : Create the node for given object
 func NewJacobNode(attr FSIntf.BlobAttr) *jacobNode {
-	Logger.LogDebug("FD : NewJacobNode called")
+	//Logger.LogDebug("FD : NewJacobNode called")
 
 	fs := &jacobNode{
 		nodePath: attr.Name,
@@ -163,7 +163,7 @@ func NewJacobNode(attr FSIntf.BlobAttr) *jacobNode {
 
 // CreateChild : Create new file in the present directory
 func (n *jacobNode) CreateChild(name string) *jacobNode {
-	Logger.LogDebug("FD : CreateChild called")
+	//Logger.LogDebug("FD : CreateChild called")
 
 	fs := &jacobNode{
 		nodePath: name,
@@ -202,7 +202,7 @@ func (n *jacobNode) StatFS(
 	ctx context.Context,
 	op *fuseops.StatFSOp) error {
 
-	Logger.LogDebug("FD : Statfs called for " + n.Path())
+	//Logger.LogDebug("FD : Statfs called for " + n.Path())
 
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs(*Config.BlobfuseConfig.TmpPath, &stat); err != nil {
@@ -221,7 +221,7 @@ func (n *jacobNode) GetInodeAttributes(
 	ctx context.Context,
 	op *fuseops.GetInodeAttributesOp) error {
 
-	Logger.LogDebug("FD : GetInodeAttributes called for " + n.Path())
+	//Logger.LogDebug("FD : GetInodeAttributes called for " + n.Path())
 
 	if n.nodeID == fuseops.RootInodeID {
 		op.Attributes = instance.rootFD.attrs
@@ -250,7 +250,7 @@ func (n *jacobNode) LookUpInode(
 	ctx context.Context,
 	op *fuseops.LookUpInodeOp) error {
 
-	Logger.LogDebug("FD : LookUpInode called for " + n.Path() + "/" + op.Name)
+	//Logger.LogDebug("FD : LookUpInode called for " + n.Path() + "/" + op.Name)
 	if _, ignore := ignoreList[op.Name]; ignore {
 		Logger.LogDebug("FD : Ignoring %s", op.Name)
 		return syscall.ENOENT

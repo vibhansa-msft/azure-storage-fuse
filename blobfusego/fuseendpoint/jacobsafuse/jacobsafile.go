@@ -15,14 +15,14 @@ func (n *jacobNode) OpenFile(
 	ctx context.Context,
 	op *fuseops.OpenFileOp) error {
 
-	Logger.LogDebug("FD : OpenFile called for %s (%d)", n.Path(), op.Inode)
+	//Logger.LogDebug("FD : OpenFile called for %s (%d)", n.Path(), op.Inode)
 
 	child := n.GetChildByInode(op.Inode)
 	if child == nil {
 		return fuse.ENOENT
 	}
 
-	Logger.LogDebug("FD : OpenFile called for path : %s", child.Path())
+	//Logger.LogDebug("FD : OpenFile called for path : %s", child.Path())
 	if err := instance.client.OpenFile(child.Path(), 0, 0); err != nil {
 		Logger.LogErr("FD : Failed to open file %s (%s)", child.Path(), err)
 		return err
@@ -35,7 +35,7 @@ func (n *jacobNode) CreateFile(
 	ctx context.Context,
 	op *fuseops.CreateFileOp) (err error) {
 
-	Logger.LogDebug("FD : CreateFile called for " + filepath.Join(n.Path(), op.Name))
+	//Logger.LogDebug("FD : CreateFile called for " + filepath.Join(n.Path(), op.Name))
 
 	if _, found := n.nameChild[op.Name]; found {
 		Logger.LogErr("FD : File already exists with the same name " + op.Name)
@@ -61,14 +61,14 @@ func (n *jacobNode) ReadFile(
 	ctx context.Context,
 	op *fuseops.ReadFileOp) (err error) {
 
-	Logger.LogDebug("FD : ReadFile called for %s (%d)", n.Path(), op.Inode)
+	//Logger.LogDebug("FD : ReadFile called for %s (%d)", n.Path(), op.Inode)
 
 	child := n.GetChildByInode(op.Inode)
 	if child == nil {
 		return fuse.ENOENT
 	}
 
-	Logger.LogDebug("FD : ReadFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Dst))
+	//Logger.LogDebug("FD : ReadFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Dst))
 
 	op.BytesRead, err = instance.client.ReadInBuffer(child.Path(), op.Offset, int64(len(op.Dst)), op.Dst)
 	if err != nil && err != io.EOF {
@@ -83,14 +83,14 @@ func (n *jacobNode) WriteFile(
 	ctx context.Context,
 	op *fuseops.WriteFileOp) error {
 
-	Logger.LogDebug("FD : WriteFile called for %s (%d)", n.Path(), op.Inode)
+	//Logger.LogDebug("FD : WriteFile called for %s (%d)", n.Path(), op.Inode)
 
 	child := n.GetChildByInode(op.Inode)
 	if child == nil {
 		return fuse.ENOENT
 	}
 
-	Logger.LogDebug("FD : WriteFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Data))
+	//Logger.LogDebug("FD : WriteFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Data))
 
 	bytes, err := instance.client.WriteFile(child.Path(), op.Offset, int64(len(op.Data)), op.Data)
 	if err != nil || bytes != len(op.Data) {
@@ -104,14 +104,14 @@ func (n *jacobNode) FlushFile(
 	ctx context.Context,
 	op *fuseops.FlushFileOp) (err error) {
 
-	Logger.LogDebug("FD : FlushFile called for %s (%d)", n.Path(), op.Inode)
+	//Logger.LogDebug("FD : FlushFile called for %s (%d)", n.Path(), op.Inode)
 
 	child := n.GetChildByInode(op.Inode)
 	if child == nil {
 		return fuse.ENOENT
 	}
 
-	Logger.LogDebug("FD : FlushFile called for path : %s", child.Path())
+	//Logger.LogDebug("FD : FlushFile called for path : %s", child.Path())
 
 	_ = instance.client.CloseFile(child.Path())
 	return nil
