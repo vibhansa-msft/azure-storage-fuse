@@ -192,6 +192,10 @@ func (fsys *loopbackFS) ReadFile(name string, offset int64, len int64) (data []b
 	return data[:readLen], nil
 }
 
+func (fsys *loopbackFS) ReadInBuffer(name string, offset int64, size int64, data []byte) (n int, err error) {
+	return 0, nil
+}
+
 func (fsys *loopbackFS) WriteFile(name string, offset int64, len int64, data []byte) (bytes int, err error) {
 	path := filepath.Join(fsys.lfsPath, name)
 	f, err := os.OpenFile(path, os.O_RDWR, 0644)

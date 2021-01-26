@@ -45,6 +45,7 @@ type FileSystem interface {
 	CloseFile(string) error
 
 	ReadFile(string, int64, int64) ([]byte, error)
+	ReadInBuffer(string, int64, int64, []byte) (int, error)
 	WriteFile(string, int64, int64, []byte) (int, error)
 	TruncateFile(string, int64) error
 

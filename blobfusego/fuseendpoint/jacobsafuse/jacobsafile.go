@@ -58,13 +58,12 @@ func (n *jacobNode) ReadFile(
 
 	Logger.LogDebug("FD : ReadFile called for path : %s offset %d len %d", child.Path(), op.Offset, len(op.Dst))
 
-	op.Dst, err = instance.client.ReadFile(child.Path(), op.Offset, int64(len(op.Dst)))
+	op.BytesRead, err = instance.client.ReadInBuffer(child.Path(), op.Offset, int64(len(op.Dst)), op.Dst)
 	if err != nil && err != io.EOF {
 		Logger.LogErr("FD : Failed to read the file %s (%s)", n.Path(), err.Error())
 		return err
 	}
 
-	op.BytesRead = len(op.Dst)
 	return nil
 }
 

@@ -88,11 +88,10 @@ func (n *jacobNode) GetChildByInode(id fuseops.InodeID) *jacobNode {
 	var child *jacobNode
 	var found bool
 	if child, found = n.child[id]; !found {
-		Logger.LogErr("FD : LookUpInode failed for inode %d", id)
+		Logger.LogErr("FD : GetChildByInode failed for inode %d", id)
 		return nil
 	}
 
-	Logger.LogDebug("FD : WriteFile called for path : %s", child.Path())
 	return child
 }
 
@@ -274,4 +273,8 @@ func (n *jacobNode) RefreshAttr(attr FSIntf.BlobAttr) {
 		n.attrs.Mode = Config.BlobfuseConfig.DefaultPerm | os.ModeIrregular
 		n.direntType = fuseutil.DT_File
 	}
+}
+
+func (n *jacobNode) ForgetInode(ctx context.Context, req *fuseops.ForgetInodeOp) (err error) {
+	return nil
 }

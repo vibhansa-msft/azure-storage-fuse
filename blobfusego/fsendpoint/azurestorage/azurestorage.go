@@ -231,6 +231,32 @@ func (az *azurestorageFS) CloseFile(name string) (err error) {
 	return err
 }
 
+func (az *azurestorageFS) ReadInBuffer(name string, offset int64, size int64, data []byte) (n int, err error) {
+	//Logger.LogDebug("FS : ReadInBuffer %s (%d : %d)", name, offset, size)
+	Stats.ReadRequest(fsName)
+	//data = make([]byte, size)
+	var f *os.File
+	var found bool
+
+	if f, found = GetOpenFile(name); !found || f == nil {
+		f, err = os.OpenFile(*Config.BlobfuseConfig.TmpPath+"/"+name,
+			os.O_RDONLY,
+			Config.BlobfuseConfig.DefaultPerm)
+		SetOpenFile(name, f)
+	}
+
+	n, err = f.ReadAt(data, offset)
+	if err != nil && err != io.EOF {
+		Logger.LogErr("Failed to read specified bytes form file")
+		Stats.ReadRequestFail(fsName)
+		return 0, err
+	}
+
+	//data = data[:n]
+	Stats.ReadBytes(fsName, uint64(n))
+	return n, nil
+}
+
 func (az *azurestorageFS) ReadFile(name string, offset int64, size int64) (data []byte, err error) {
 	//Logger.LogDebug("FS : ReadFile %s (%d : %d)", name, offset, size)
 	Stats.ReadRequest(fsName)
