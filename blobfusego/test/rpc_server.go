@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Arith int
@@ -47,7 +50,13 @@ type TestST struct {
 
 func GetTestST(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Called")
-	//*reply = Caller.RemoteAddr().String()
+	fmt.Println(r.URL.Query())
+
+	out_format := r.URL.Query().Get("format")
+	if out_format != "" {
+		out_format = strings.ToLower(out_format)
+	}
+	fmt.Println("Selected format  : " + out_format)
 
 	t1 := &TestST{
 		FieldA: "Hello",
@@ -59,19 +68,22 @@ func GetTestST(w http.ResponseWriter, r *http.Request) {
 	t1.FieldD = append(t1.FieldD, 10)
 	t1.FieldD = append(t1.FieldD, 20)
 
-	/*d, err := yaml.Marshal(&t1)
-	if err != nil {
-		log.Fatalf("error: %v", err)
+	if out_format == "yaml" || out_format == "yml" {
+		d, err := yaml.Marshal(&t1)
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+		fmt.Fprintf(w, string(d))
+		return
 	}
-	fmt.Fprintf(w, string(d))
-	*/
-	//fmt.Println(string(d))
 	json.NewEncoder(w).Encode(t1)
 
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to the HomePage!")
+	fmt.Println(r.URL.Query())
+
 	fmt.Println(GetIP(r))
 	fmt.Println("Endpoint Hit: homePage")
 }
