@@ -48,6 +48,7 @@ type TestST struct {
 	FieldD []int `yaml:"D"`
 }
 
+// http://172.19.100.136:1234/GetTestST?format=YaML
 func GetTestST(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Called")
 	fmt.Println(r.URL.Query())
