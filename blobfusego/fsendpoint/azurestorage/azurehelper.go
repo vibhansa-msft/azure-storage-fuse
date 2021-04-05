@@ -3,7 +3,6 @@ package azurestorage
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"time"
 
@@ -139,6 +138,7 @@ func fetchMSIToken(applicationID string, identityResourceID string, resource str
 	}
 
 	if err != nil {
+		Logger.LogErr("Failed to create token (%s)", err.Error())
 		return nil, err
 	}
 
@@ -148,7 +148,8 @@ func fetchMSIToken(applicationID string, identityResourceID string, resource str
 func getOAuthToken(applicationID, identityResourceID, resource string, callbacks ...adal.TokenRefreshCallback) (*azblob.TokenCredential, error) {
 	spt, err := fetchMSIToken(applicationID, identityResourceID, resource, callbacks...)
 	if err != nil {
-		log.Fatal(err)
+		Logger.LogErr("Failed to get MSI token (%s)", err.Error())
+		return nil, err
 	}
 
 	// Refresh obtains a fresh token
