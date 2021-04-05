@@ -3,6 +3,7 @@ package azurestorage
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/Azure/azure-pipeline-go/pipeline"
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/go-autorest/autorest/adal"
 )
 
 // validateAccKey : Validate storage account using account key
@@ -52,7 +54,13 @@ func getServiceURL(az *azurestorageFS) (serviceURL azblob.ServiceURL, err error)
 	} else if Config.IsAuthTypeSAS() {
 		az.azPipeline, err = getSASPipeline()
 		if err != nil {
-			Logger.LogErr("Failed to create pipeline using storage key")
+			Logger.LogErr("Failed to create pipeline using SAS")
+			return serviceURL, err
+		}
+	} else if Config.IsAuthTypeMSI() {
+		az.azPipeline, err = getMSIPipeline(*Config.BlobfuseConfig.ApplicationID, *Config.BlobfuseConfig.ResourceID, *Config.BlobfuseConfig.Resource)
+		if err != nil {
+			Logger.LogErr("Failed to create pipeline using MSI")
 			return serviceURL, err
 		}
 	}
@@ -73,6 +81,8 @@ func getServiceURL(az *azurestorageFS) (serviceURL azblob.ServiceURL, err error)
 			endpoint,
 			*Config.BlobfuseConfig.StoreContainerName,
 			*Config.BlobfuseConfig.StoreAccountSAS))
+	} else if Config.IsAuthTypeMSI() {
+		az.epURL, err = url.Parse("https://" + *Config.BlobfuseConfig.StoreAccountName + ".blob.core.windows.net/")
 	}
 
 	if err != nil {
@@ -102,6 +112,67 @@ func getSASPipeline() (p pipeline.Pipeline, err error) {
 	Logger.LogErr("Creating a SAS based pipeline")
 	c := azblob.NewAnonymousCredential()
 	return azblob.NewPipeline(c, azblob.PipelineOptions{}), nil
+}
+
+func getMSIPipeline(applicationID, identityResourceID, resource string) (p pipeline.Pipeline, err error) {
+	Logger.LogErr("Creating a MSI based pipeline")
+	callbacks := func(token adal.Token) error { return nil }
+	tokenCredentials, err := getOAuthToken(applicationID, identityResourceID, resource, callbacks)
+	if err != nil {
+		Logger.LogErr("Failed to get the Auth token (%s)", err.Error())
+	}
+	return azblob.NewPipeline(*tokenCredentials, azblob.PipelineOptions{}), nil
+}
+
+func fetchMSIToken(applicationID string, identityResourceID string, resource string, callbacks ...adal.TokenRefreshCallback) (*adal.ServicePrincipalToken, error) {
+	msiEndpoint, _ := adal.GetMSIVMEndpoint()
+
+	var spt *adal.ServicePrincipalToken
+	var err error
+
+	if applicationID == "" && identityResourceID == "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSI(msiEndpoint, resource, callbacks...)
+	} else if applicationID != "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, resource, applicationID, callbacks...)
+	} else if identityResourceID != "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSIWithIdentityResourceID(msiEndpoint, resource, identityResourceID, callbacks...)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return spt, spt.Refresh()
+}
+
+func getOAuthToken(applicationID, identityResourceID, resource string, callbacks ...adal.TokenRefreshCallback) (*azblob.TokenCredential, error) {
+	spt, err := fetchMSIToken(applicationID, identityResourceID, resource, callbacks...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Refresh obtains a fresh token
+	err = spt.Refresh()
+	if err != nil {
+		Logger.LogErr("Failed to Refresh the token (%s)", err.Error())
+		return nil, err
+	}
+
+	tc := azblob.NewTokenCredential(spt.Token().AccessToken, func(tc azblob.TokenCredential) time.Duration {
+		err := spt.Refresh()
+		if err != nil {
+			Logger.LogErr("Failed to Refresh the token (%s)", err.Error())
+			return 0
+		}
+
+		// set the new token value
+		tc.SetToken(spt.Token().AccessToken)
+
+		// get the next token slightly before the current one expires
+		return time.Until(spt.Token().Expires()) - 10*time.Second
+	})
+
+	return &tc, nil
 }
 
 var azPiplineOptions = azblob.PipelineOptions{

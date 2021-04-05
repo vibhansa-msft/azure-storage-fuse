@@ -22,9 +22,13 @@ type GlobalConfig struct {
 	LogFileSizeMB *int    // Optional		: Size of each log file at max
 	LogFileCount  *int    // Optional		: Number of logs files to be used for rotation
 
-	StoreAccountName   *string // Mandatory : Storage account name
-	StoreAccountKey    *string // Optional : Storage account key
-	StoreAccountSAS    *string // Optional : Storage account SAS
+	StoreAccountName *string // Mandatory : Storage account name
+	StoreAccountKey  *string // Optional : Storage account key
+	StoreAccountSAS  *string // Optional : Storage account SAS
+	ApplicationID    *string // Optional : Application id for token based auth
+	ResourceID       *string // Optional : Resource id for token based auth
+	Resource         *string // Optional : Resource name for token based auth
+
 	StoreAuthType      *string // Mandatory : Auth type chosen by customer
 	StoreContainerName *string // Mandatory    : Container name to be mounted
 	StorageAccountADLS *bool   // Optional : Whether storage account is ADLS or not
@@ -60,6 +64,10 @@ func init() {
 	BlobfuseConfig.StoreAccountName = flag.String("account", "", "Azure Storage account name")
 	BlobfuseConfig.StoreAccountKey = flag.String("accountkey", "", "Azure Storage account key")
 	BlobfuseConfig.StoreAccountSAS = flag.String("sas", "", "Azure Storage account sas")
+	BlobfuseConfig.ApplicationID = flag.String("appid", "", "Azure Storage Application id for auth")
+	BlobfuseConfig.ResourceID = flag.String("resid", "", "Azure Storage Resource id for auth")
+	BlobfuseConfig.Resource = flag.String("res", "", "Azure Storage Resource name for auth")
+
 	BlobfuseConfig.StoreAuthType = flag.String("authtype", "", "Azure Storage auth type")
 	BlobfuseConfig.StorageAccountADLS = flag.Bool("adls", false, "Storage account if ADLS or not")
 	BlobfuseConfig.StoreContainerName = flag.String("container", "tmp", "Name of the container")
@@ -112,6 +120,14 @@ func IsAuthTypeAccKey() bool {
 // IsAuthTypeSAS : Check whether given auth type is SAS or not
 func IsAuthTypeSAS() bool {
 	if *BlobfuseConfig.StoreAuthType == "sas" {
+		return true
+	}
+	return false
+}
+
+// IsAuthTypeMSI : Check whether given auth type is MSI or not
+func IsAuthTypeMSI() bool {
+	if *BlobfuseConfig.StoreAuthType == "msi" {
 		return true
 	}
 	return false
