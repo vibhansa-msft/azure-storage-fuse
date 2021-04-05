@@ -21,8 +21,13 @@ func (az *azurestorageFS) validateAccount() (err error) {
 		Logger.LogErr("Failed to create service URL")
 		return err
 	}
-	//az.containerURL = az.serviceURL.NewContainerURL(*Config.BlobfuseConfig.StoreContainerName)
-	az.containerURL = azblob.NewContainerURL(*az.epURL, az.azPipeline)
+	
+	if Config.IsAuthTypeMSI() {
+		az.containerURL = az.serviceURL.NewContainerURL(*Config.BlobfuseConfig.StoreContainerName)
+	} else {
+		az.containerURL = azblob.NewContainerURL(*az.epURL, az.azPipeline)
+	}
+	Logger.LogErr("Container URL is %s", az.containerURL)
 	marker := (azblob.Marker{})
 
 	//var lst *azblob.ListBlobsHierarchySegmentResponse
@@ -168,7 +173,8 @@ func getOAuthToken(applicationID, identityResourceID, resource string, callbacks
 
 		// set the new token value
 		tc.SetToken(spt.Token().AccessToken)
-
+		Logger.LogErr("Token retreived is %s (%d)", spt.Token().AccessToken, spt.Token().Expires())
+		
 		// get the next token slightly before the current one expires
 		return time.Until(spt.Token().Expires()) - 10*time.Second
 	})
