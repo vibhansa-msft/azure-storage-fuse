@@ -157,9 +157,9 @@ func validateConfig() {
 			}
 		} else if IsAuthTypeMSI() {
 			Logger.LogDebug("Chosen AuthType : MSI")
-			if  *BlobfuseConfig.ApplicationID == "" && 
+			if *BlobfuseConfig.ApplicationID == "" &&
 				*BlobfuseConfig.ResourceID == "" &&
-				*BlobfuseConfig..Resource == ""{
+				*BlobfuseConfig.Resource == "" {
 				panic("Storage Account SAS is missing")
 			}
 		} else {
